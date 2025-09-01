@@ -47,6 +47,7 @@ current_dir = pathlib.Path(__file__).parent
 sys.path.insert(0, str(current_dir))
 
 from charts import radar_factory, composite_score_chart
+from ReportScripts.VALD_API.vald_client import ValdClient
 from ReportScripts.VALD_API.ind_ath_data import get_athlete_data
 from ReportScripts.PullRefData.pull_all import pull_all_ref
 
@@ -58,10 +59,12 @@ from ReportScripts.PullRefData.pull_all import pull_all_ref
 #TEMP_TEST_SESSION = datetime(2025, 7, 29).date() # July 29, 2025 (Dylan Tostrup)
 
 # -- PDF GENERATION FUNCTIONS ------------------------------------------------------
-def generate_athlete_pdf(athlete_name, test_date, min_age, max_age, output_path):
+def generate_athlete_pdf(athlete_name, test_date, min_age, max_age, output_path, client=None):
+    if client is None:
+        client = ValdClient()
     # 0.0) Data Pulling / Use
     # 0.0) Run the athlete data pull (saves to Output CSVs/Athlete/Full_Data.csv)
-    athlete_data = get_athlete_data(athlete_name, test_date)
+    athlete_data = get_athlete_data(athlete_name, test_date, client)
     # 0.1) Run the reference data pull (saves to Output CSVs/Reference/HJ_ref.csv, etc.)
     pull_all_ref(min_age, max_age)
     # 0.2) Set up the test date formatted

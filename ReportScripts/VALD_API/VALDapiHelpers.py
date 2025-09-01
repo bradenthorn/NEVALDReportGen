@@ -82,21 +82,23 @@ def FD_Tests_by_Profile(DATE, profileId, token):
 
 
 # Get CMJ Trial Z-Score to determine best trial (this works for now, but might be worse in the future)
-def cmj_z_score(CONCENTRIC_IMPULSE_Trial_Ns,
-               ECCENTRIC_BRAKING_RFD_Trial_Ns,
-               PEAK_CONCENTRIC_FORCE_Trial_N,
-               BODYMASS_RELATIVE_TAKEOFF_POWER_Trial_Wkg,
-               RSI_MODIFIED_Trial_RSI_mod,
-               ECCENTRIC_BRAKING_IMPULSE_Trial_Ns):
-    # Calculating the CMJ Trial Z-Score
-    cmj_z = (((CONCENTRIC_IMPULSE_Trial_Ns * 0.0159412) - 2.739286) * .2) + \
-            (((ECCENTRIC_BRAKING_RFD_Trial_Ns * 0.0004317) - 1.680167) * .1) + \
-            (((PEAK_CONCENTRIC_FORCE_Trial_N * 0.0018574) - 2.995598) * .2) + \
-            (((BODYMASS_RELATIVE_TAKEOFF_POWER_Trial_Wkg) * 0.1045924) * .3) + \
-            (((RSI_MODIFIED_Trial_RSI_mod) * 7.5804694) * .1) + \
-            (((ECCENTRIC_BRAKING_IMPULSE_Trial_Ns) * 0.049517) * .1)
-    # Returning the CMJ Trial Z-Score
-    return cmj_z
+def cmj_z_score(
+    CONCENTRIC_IMPULSE_Trial_Ns,
+    ECCENTRIC_BRAKING_RFD_Trial_Ns,
+    PEAK_CONCENTRIC_FORCE_Trial_N,
+    BODYMASS_RELATIVE_TAKEOFF_POWER_Trial_Wkg,
+    RSI_MODIFIED_Trial_RSI_mod,
+    ECCENTRIC_BRAKING_IMPULSE_Trial_Ns,
+):
+    """Calculate a CMJ trial z-score used to select the best jump."""
+    return (
+        ((CONCENTRIC_IMPULSE_Trial_Ns * 0.0159412) - 2.739286) * 0.2
+        + ((ECCENTRIC_BRAKING_RFD_Trial_Ns * 0.0004317) - 1.680167) * 0.1
+        + ((PEAK_CONCENTRIC_FORCE_Trial_N * 0.0018574) - 2.995598) * 0.2
+        + ((BODYMASS_RELATIVE_TAKEOFF_POWER_Trial_Wkg) * 0.1045924) * 0.3
+        + ((RSI_MODIFIED_Trial_RSI_mod) * 7.5804694) * 0.1
+        + ((ECCENTRIC_BRAKING_IMPULSE_Trial_Ns) * 0.049517) * 0.1
+    )
 
 # Get FD results from a specific testID
 def get_FD_results(testId, token, test_type):

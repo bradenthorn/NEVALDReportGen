@@ -7,21 +7,35 @@
 # -- IMPORTS ----------------------------------------------------------------------
 import sys
 from pathlib import Path
-from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                               QFormLayout, QComboBox, QDateEdit, QSpinBox, QPushButton,
-                               QLabel, QProgressBar, QMessageBox, QListWidget, QLineEdit,
-                               QCompleter)
+from PySide6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QFormLayout,
+    QComboBox,
+    QDateEdit,
+    QSpinBox,
+    QPushButton,
+    QLabel,
+    QProgressBar,
+    QMessageBox,
+    QListWidget,
+    QLineEdit,
+    QCompleter,
+)
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QFont
 from datetime import datetime
 import pathlib
+
 # -- BACKEND TO PATH --------------------------------------------------------------
 # Add the project root to Python path
 project_root = pathlib.Path(__file__).parent
 sys.path.append(str(project_root))
 # -- IMPORTS FROM BACKEND ---------------------------------------------------------
-from ReportScripts.VALD_API.VALDapiHelpers import (get_profiles, FD_Tests_by_Profile)
-from ReportScripts.VALD_API.token_gen import get_vald_token
+from ReportScripts.VALD_API.vald_client import ValdClient
 from ReportScripts.GenerateReports.FD_PDF_V1 import generate_athlete_pdf
 
 # -- MAIN WINDOW CLASS -------------------------------------------------------------
@@ -52,10 +66,9 @@ class AthleteReporterApp(QMainWindow):
         layout.addWidget(title_label)
         # Create main layout
         form_layout = QFormLayout()
-        # Generate a VALD API token
-        self.token = get_vald_token()
-        # Generate a df of athlete profiles
-        self.athletes_df = get_profiles(self.token)
+        # Initialise the VALD API client and cache profiles
+        self.client = ValdClient()
+        self.athletes_df = self.client.get_profiles()
         # Create a tool to select an athlete (searchbox with autocomplete)
         self.search_box = QLineEdit()
         self.search_box.setPlaceholderText("Search athlete name...")
@@ -142,7 +155,7 @@ class AthleteReporterApp(QMainWindow):
             athlete_id = self.athletes_df[self.athletes_df['fullName'] == athlete_name]['profileId'].values[0]
             # Get the athlete's test dates
             start_date = datetime(2020, 1, 1, 0, 0, 0)
-            test_dates = FD_Tests_by_Profile(start_date, athlete_id, self.token)
+            test_dates = self.client.get_tests_by_profile(start_date, athlete_id)
             # Check if the test dates are not None
             if test_dates is not None and not test_dates.empty:
                 # Get unique dates
@@ -209,11 +222,15 @@ class AthleteReporterApp(QMainWindow):
             # Set the output path
             self.output_path = f"/Users/owenmccandless/Desktop/NextEra Work/PDF Reports/{self.selected_athlete}_{self.selected_date}.pdf"
             # Generate the report
-            generate_athlete_pdf(self.selected_athlete,
-                                 datetime.strptime(self.selected_date, "%Y-%m-%d").date(),
-                                 self.selected_age_range[0],
-                                 self.selected_age_range[1],
-                                 self.output_path)
+            # Generate the report
+            generate_athlete_pdf(
+                self.selected_athlete,
+                datetime.strptime(self.selected_date, "%Y-%m-%d").date(),
+                self.selected_age_range[0],
+                self.selected_age_range[1],
+                self.output_path,
+                client=self.client,
+            )
             # For now, show a success message
             QMessageBox.information(self, "Report Generated", 
                                 f"Report generated successfully!\n"
@@ -227,10 +244,6 @@ class AthleteReporterApp(QMainWindow):
             QMessageBox.warning(self, "Error", "Please complete all selections first.")
 
        
-
-
-
-
 def main():
     """Main application entry point."""
     app = QApplication(sys.argv)
