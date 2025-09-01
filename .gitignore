@@ -1,0 +1,76 @@
+# Virtual Environments
+MyVenv/
+my_env/
+env/
+venv/
+.venv/
+env*/
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment variables and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Credentials and sensitive files
+gcp_credentials.json
+*.json
+!requirements.json
+.token_cache.json
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Output directories (if you don't want to commit generated data)
+# Uncomment these if you don't want to commit output files:
+# Output CSVs/
+# Media/
+
+# Note: gcp_credentials.json should be configured via environment variables
+# or a secure credential management system, not committed to the repository
