@@ -241,7 +241,11 @@ def generate_athlete_pdf(athlete_name, test_date, min_age, max_age, output_path,
 # -- CALLING/TESTING PDF GENERATION -----------------------------------------------
 # Calling an example with good data (Ace Kelly) (uncomment to run)
 # temp_date = datetime(2025, 7, 1).date()
-# generate_athlete_pdf("Charles Gargus", temp_date, 18, 25,"/Users/owenmccandless/Desktop/NextEra Work/CG_Example.pdf")
-# generate_athlete_pdf("Dylan Tostrup", "/Users/owenmccandless/Desktop/NextEra Work/DT_Example.pdf")
+from config import PDF_OUTPUT_DIR
+from pathlib import Path
+
+# Example usage with portable paths:
+# generate_athlete_pdf("Charles Gargus", temp_date, 18, 25, str(Path(PDF_OUTPUT_DIR) / "CG_Example.pdf"))
+# generate_athlete_pdf("Dylan Tostrup", temp_date, 18, 25, str(Path(PDF_OUTPUT_DIR) / "DT_Example.pdf"))
 temp_date = datetime(2025, 8, 3).date()
-generate_athlete_pdf("Braden Thorn", temp_date, 25, 35,"/Users/owenmccandless/Desktop/NextEra Work/BT_Example.pdf")
+generate_athlete_pdf("Braden Thorn", temp_date, 25, 35, str(Path(PDF_OUTPUT_DIR) / "BT_Example.pdf"))

@@ -14,11 +14,11 @@ A desktop application for generating performance reports from VALD data using Go
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.8+
 - Google Cloud Platform account with BigQuery access
 - VALD API credentials
 
-### Installation
+### Quick Setup (Recommended)
 
 1. Clone the repository:
    ```bash
@@ -26,7 +26,19 @@ A desktop application for generating performance reports from VALD data using Go
    cd NEVALDReportGen
    ```
 
-2. Create a virtual environment:
+2. Run the automated setup script:
+   ```bash
+   python setup.py
+   ```
+
+3. Configure your credentials:
+   - Edit `.env` file with your VALD API credentials
+   - Copy `gcp_credentials.json.example` to `gcp_credentials.json`
+   - Fill in your actual Google Cloud service account credentials
+
+### Manual Setup
+
+1. Create a virtual environment:
    ```bash
    python -m venv MyVenv
    MyVenv\Scripts\activate  # Windows
@@ -34,15 +46,19 @@ A desktop application for generating performance reports from VALD data using Go
    source MyVenv/bin/activate  # Linux/Mac
    ```
 
-3. Install dependencies:
+2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-4. Configure credentials:
-   - Copy `gcp_credentials.json.example` to `gcp_credentials.json`
-   - Fill in your actual Google Cloud service account credentials
-   - Ensure your service account has BigQuery access
+3. Copy environment template:
+   ```bash
+   copy env.example .env  # Windows
+   # or
+   cp env.example .env    # Linux/Mac
+   ```
+
+4. Configure credentials in `.env` file
 
 ### Running the Application
 
@@ -65,7 +81,16 @@ python desktop_app.py
 
 ## Security Note
 
-**Never commit actual credentials to the repository.** Use the provided example file and configure your actual credentials locally.
+**Never commit actual credentials to the repository.** Use the provided example files and configure your actual credentials locally.
+
+## Configuration
+
+The project uses a centralized configuration system:
+
+- `config.py` - Central configuration file with all settings
+- `.env` - Environment variables for credentials (not committed to Git)
+- `env.example` - Template for environment variables
+- `gcp_credentials.json.example` - Template for GCP credentials
 
 ## Contributing
 

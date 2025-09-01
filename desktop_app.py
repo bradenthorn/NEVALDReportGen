@@ -220,8 +220,9 @@ class AthleteReporterApp(QMainWindow):
             # Update status
             self.status_label.setText("Generating report... Please wait.")
             # Set the output path
-            self.output_path = f"/Users/owenmccandless/Desktop/NextEra Work/PDF Reports/{self.selected_athlete}_{self.selected_date}.pdf"
-            # Generate the report
+            from config import PDF_OUTPUT_DIR
+            from pathlib import Path
+            self.output_path = str(Path(PDF_OUTPUT_DIR) / f"{self.selected_athlete}_{self.selected_date}.pdf")
             # Generate the report
             generate_athlete_pdf(
                 self.selected_athlete,

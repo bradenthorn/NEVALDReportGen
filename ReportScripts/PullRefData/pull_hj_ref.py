@@ -8,12 +8,16 @@
 from google.cloud import bigquery
 from google.oauth2 import service_account
 import pandas as pd
+from pathlib import Path
 
 # -- CONSTANTS --------------------------------------------------------------------
-# Not sure if this is the best way to handle the key path, but it works for now
-key_path   = "/Users/owenmccandless/VALDReportGenerator/gcp-bq-key.json"
-project_id = "vald-ref-data"
-_TABLE_FQN = "vald-ref-data.athlete_performance_db.hj_results"
+import sys
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from config import GCP_CREDENTIALS_PATH, GCP_PROJECT_ID, HJ_TABLE
+
+key_path = GCP_CREDENTIALS_PATH
+project_id = GCP_PROJECT_ID
+_TABLE_FQN = HJ_TABLE
 
 # -- FUNCTIONS --------------------------------------------------------------------
 def pull_hj_ref(min_age: int, max_age: int) -> pd.DataFrame:

@@ -39,7 +39,15 @@ wheels/
 gcp_credentials.json
 *.json
 !requirements.json
+!gcp_credentials.json.example
 .token_cache.json
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # IDE and editor files
 .vscode/
