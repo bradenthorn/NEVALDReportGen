@@ -7,14 +7,6 @@
 # Page 3: Composite Score (for in house athletes in age range)
 # =================================================================================
 
-# -- IMPORTANT NOTE ---------------------------------------------------------------
-# Currently using a manually pulled CMJ reference data base (old_CMJ_ref.csv)
-#       This is because the new CMJ reference data is not yet available
-# Also currently manually putting the test date in (Need UI for this)
-# Also currently manually putting in the athlete age range (Need UI for this)
-# CHECK ALL SCRIPTS - since there are manuel inputs in lots of places 
-# ---------------------------------------------------------------------------------
-
 # -- IMPORTS ----------------------------------------------------------------------
 import pandas as pd # For data manipulation
 import numpy as np # Numpy for numerical operations
@@ -38,6 +30,7 @@ from matplotlib.transforms import Affine2D # Matplotlib for plotting
 from matplotlib.path import Path # Matplotlib for plotting
 import matplotlib.pyplot as plt # Matplotlib for plotting
 import textwrap # For wrapping text
+
 # Add the project root to Python path
 project_root = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
@@ -47,9 +40,6 @@ current_dir = pathlib.Path(__file__).parent
 sys.path.insert(0, str(current_dir))
 
 from charts import radar_factory, composite_score_chart
-from ReportScripts.VALD_API.vald_client import ValdClient
-from ReportScripts.VALD_API.ind_ath_data import get_athlete_data
-from ReportScripts.PullRefData.pull_all import pull_all_ref
 
 # -- CONSTANTS --------------------------------------------------------------------
 # Centralized styling constants for easy layout tweaks
@@ -177,21 +167,11 @@ def draw_composite_score(c, width, percentile_score,
 def generate_athlete_pdf(
     athlete_name,
     test_date,
-    min_age,
-    max_age,
     output_path,
-    client=None,
-    use_cached_data: bool = True,
+    athlete_df,
+    ref_data,
 ):
-    if client is None and not use_cached_data:
-        client = ValdClient()
-    # 0.0) Data Pulling / Use
-    if not use_cached_data:
-        # 0.0) Run the athlete data pull (saves to Output CSVs/Athlete/Full_Data.csv)
-        get_athlete_data(athlete_name, test_date, client)
-        # 0.1) Run the reference data pull (saves to Output CSVs/Reference/HJ_ref.csv, etc.)
-        pull_all_ref(min_age, max_age)
-    # 0.2) Set up the test date formatted
+    #0.0 format the date into a string
     test_date_formatted = test_date.strftime("%B %d, %Y")
 
     # 1.1) Set up the PDF canvas
@@ -205,14 +185,14 @@ def generate_athlete_pdf(
     # 1.3.0) Drawing in the athlete spider chart (right side of page)
     athlete_name = athlete_name.lower().strip()
     labels = ["Reactive Strength", "Lower Half Strength", "Upper Half Strength", "Peak Power", "Relative Power"]
-    # 1.3.1) Reading in the athlete data and reference data
-    athlete_data = pd.read_csv("Output CSVs/Athlete/Full_Data.csv")
-    hj_ref_data = pd.read_csv("Output CSVs/Reference/HJ_ref.csv")
-    imtp_ref_data = pd.read_csv("Output CSVs/Reference/IMTP_ref.csv")
-    ppu_ref_data = pd.read_csv("Output CSVs/Reference/PPU_ref.csv")
-    cmj_ref_data = pd.read_csv("Output CSVs/Reference/CMJ_ref.csv") 
+    # 1.3.1) Using provided athlete and reference data
+    athlete_data = athlete_df
+    hj_ref_data = ref_data["hj"]
+    imtp_ref_data = ref_data["imtp"]
+    ppu_ref_data = ref_data["ppu"]
+    cmj_ref_data = ref_data["cmj"] 
     # 1.3.2.0) Edited to deal with CMJ metrics first (HJ RSI Percentile (Reactive Strength))
-    #Peak Power
+        #Peak Power
     athlete_cmj_peak = round(athlete_data[athlete_data['metric_id'] == 'CMJ_PEAK_TAKEOFF_POWER_Trial_W']['Value'].values[0], 2)
     cmj_pp_percentile = round(stats.percentileofscore(cmj_ref_data['PEAK_TAKEOFF_POWER_Trial_W'], athlete_cmj_peak), 2)
         #Concentric Impulse
@@ -229,6 +209,9 @@ def generate_athlete_pdf(
         #Peak Concentric Force
     athlete_ppu_peak = round(athlete_data[athlete_data['metric_id'] == 'PPU_PEAK_CONCENTRIC_FORCE_Trial_N']['Value'].values[0], 2)
     ppu_percentile = round(stats.percentileofscore(ppu_ref_data['PEAK_CONCENTRIC_FORCE_Trial_N'], athlete_ppu_peak), 2)
+        #Eccentric Braking RFD
+    athlete_ppu_eb_rfd = round(athlete_data[athlete_data['metric_id'] == 'PPU_ECCENTRIC_BRAKING_RFD_Trial_N/s']['Value'].values[0], 2)
+    ppu_eb_rfd_percentile = round(stats.percentileofscore(ppu_ref_data['ECCENTRIC_BRAKING_RFD_Trial_N_s_'], athlete_ppu_eb_rfd), 2)
     
     # 1.3.2.2) Third is IMTP metrics
         #Peak Vertical Force
@@ -246,19 +229,28 @@ def generate_athlete_pdf(
     draw_spider_chart(c, width, height, spider_data, labels)
 
     # 1.4) Displaying the spider chart data
-    c.setFont("Helvetica-Bold", 12)
-    spacing = 15
-    top = height - 140
-    c.drawString(25, top - spacing, "Countermovement Jump Performance:")
-    c.drawString(25, top - 3 * spacing, "Plyometric Push Up Performance:")
-    c.drawString(25, top - 5 * spacing, "Isometric Mid Thigh Pull Performance:")
-    c.drawString(25, top - 7 * spacing, "Hop Jump Performance:")
+    spacing = 17
+    top = height - 110
+    def draw_underlined_text(c, x, y, text):
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(x, y, text)
+        text_width = c.stringWidth(text, "Helvetica-Bold", 12)
+        c.setLineWidth(1)
+        c.line(x, y - 2, x + text_width, y - 2)
+    
+    draw_underlined_text(c, 25, top - spacing, "Countermovement Jump Performance:")
+    draw_underlined_text(c, 25, top - 6 * spacing, "Plyometric Push Up Performance:")
+    draw_underlined_text(c, 25, top - 9 * spacing, "Isometric Mid Thigh Pull Performance:")
+    draw_underlined_text(c, 25, top - 11 * spacing, "Hop Jump Performance:")
     c.setFont("Helvetica", 10)
-    c.drawString(25, top - 2 * spacing, f"HJ Reactive Strength Index: {athlete_hj_rsi} - {hj_percentile}%")
-    c.drawString(25, top - 4 * spacing, f"IMTP Peak Vertical Force: {athlete_imtp_peak}(N) - {imtp_percentile}%")
-    c.drawString(25, top - 6 * spacing, f"PPU Peak Concentric Force: {athlete_ppu_peak}(N) - {ppu_percentile}%")
-    c.drawString(25, top - 8 * spacing, f"CMJ Peak Power: {athlete_cmj_peak}(W) - {cmj_pp_percentile}%")
-    c.drawString(25, top - 10 * spacing, f"CMJ Relative Peak Power: {athlete_cmj_bm_rel_peak}(W/kg) - {cmj_bm_rel_peak_percentile}%")
+    c.drawString(25, top - 2 * spacing, f"Peak Power: {athlete_cmj_peak}(W) - {cmj_pp_percentile}%")
+    c.drawString(25, top - 3 * spacing, f"Concentric Impulse: {athlete_cmj_con_imp}(Ns) - {cmj_con_imp_percentile}%")
+    c.drawString(25, top - 4 * spacing, f"Eccentric Braking RFD: {athlete_cmj_eb_rfd}(N/s) - {cmj_eb_rfd_percentile}%")
+    c.drawString(25, top - 5 * spacing, f"Body Mass Relative Peak Power: {athlete_cmj_bm_rel_peak}(W/kg) - {cmj_bm_rel_peak_percentile}%")
+    c.drawString(25, top - 7 * spacing, f"Peak Concentric Force: {athlete_ppu_peak}(N) - {ppu_percentile}%")
+    c.drawString(25, top - 8 * spacing, f"Eccentric Braking RFD: {athlete_ppu_eb_rfd}(N/s) - {ppu_eb_rfd_percentile}%")
+    c.drawString(25, top - 10 * spacing, f"Peak Vertical Force: {athlete_imtp_peak}(N) - {imtp_percentile}%")
+    c.drawString(25, top - 12 * spacing, f"HJ Reactive Strength Index: {athlete_hj_rsi} - {hj_percentile}%")
 
     # 1.6) Displaying the athlete's composite score
     # TODO: FIGURE OUT PROPER COMPOSITE SCORE METHOD (THIS IS NOT IT)
@@ -298,13 +290,20 @@ def generate_athlete_pdf(
 # temp_date = datetime(2025, 7, 1).date()
 from config import PDF_OUTPUT_DIR
 from pathlib import Path
+from data_loader import load_athlete_and_reference_data
 
-temp_date = datetime(2025, 9, 4).date()
-generate_athlete_pdf(
-    "Blake Maestas",
+temp_date = datetime(2025, 9, 2).date()
+athlete_df, ref_data = load_athlete_and_reference_data(
+    "Cole Cates",
     temp_date,
     15,
     18,
-    str(Path(PDF_OUTPUT_DIR) / "BM_Example.pdf"),
-    use_cached_data=True,
+    use_cached_data=False,
+)
+generate_athlete_pdf(
+    "Cole Cates",
+    temp_date,
+    str(Path(PDF_OUTPUT_DIR) / "CC_Example.pdf"),
+    athlete_df,
+    ref_data,
 )
