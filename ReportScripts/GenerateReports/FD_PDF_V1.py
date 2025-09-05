@@ -52,21 +52,145 @@ from ReportScripts.VALD_API.ind_ath_data import get_athlete_data
 from ReportScripts.PullRefData.pull_all import pull_all_ref
 
 # -- CONSTANTS --------------------------------------------------------------------
-# Not sure what constants we will need, or if we will need any
+# Centralized styling constants for easy layout tweaks
+HEADER_FONTS = {
+    "name": ("Helvetica-Bold", 30),
+    "desc": ("Helvetica", 15),
+    "body": ("Helvetica", 10),
+}
 
-# TODO: Need a way to have the test date in here too 
-#TEMP_TEST_SESSION = datetime(2025, 7, 1).date() # July 1, 2025 (Charles Gargus)
-#TEMP_TEST_SESSION = datetime(2025, 7, 29).date() # July 29, 2025 (Dylan Tostrup)
+HEADER_COLORS = {
+    "border_top": (0, 0, 0),
+    "border_bottom": (0.5, 0.5, 0.5),
+}
+
+LOGO_PATH = "Media/horizontal throwing.png"
+LOGO_SIZE = (72 * 2, 72 / 2)  # width, height
+SPIDER_CHART_SIZE = (270, 180)
+COMPOSITE_CHART_SIZE = (200, 200)
+
+
+# -- DRAWING HELPERS --------------------------------------------------------------
+def draw_header(c, athlete_name, test_date_formatted, width, height,
+                fonts=None, colors=None, name_coords=(25, 45),
+                desc_coords=(25, 80)):
+    """Draw the report header with athlete name, date and borders."""
+    fonts = fonts or HEADER_FONTS
+    colors = colors or HEADER_COLORS
+    c.setFont(*fonts["name"])
+    c.drawString(name_coords[0], height - name_coords[1], athlete_name)
+
+    # Outer borders
+    c.setFillColorRGB(*colors["border_top"])
+    c.rect(25, height - 58, width - 50, 8, stroke=0, fill=1)
+    c.setFillColorRGB(*colors["border_bottom"])
+    c.rect(25, height - 64, width - 50, 4, stroke=0, fill=1)
+    c.setFillColorRGB(*colors["border_top"])
+
+    c.setFont(*fonts["desc"])
+    c.drawString(desc_coords[0], height - desc_coords[1],
+                 f"Performance Assessment Overview - {test_date_formatted}")
+
+    # Logo section
+    c.setFillColorRGB(*colors["border_bottom"])
+    c.rect(25, 40, width - 205, 4, stroke=0, fill=1)
+    c.setFillColorRGB(*colors["border_top"])
+    c.rect(25, 30, width - 205, 8, stroke=0, fill=1)
+    logo_w, logo_h = LOGO_SIZE
+    logo_x = width - logo_w - 25
+    logo_y = 18
+    c.drawImage(LOGO_PATH, logo_x, logo_y, width=logo_w, height=logo_h, mask='auto')
+
+
+def draw_spider_chart(c, width, height, spider_data, labels,
+                      chart_size=SPIDER_CHART_SIZE,
+                      line_color="cornflowerblue", fill_color="cornflowerblue",
+                      chart_coords=None):
+    """Draw the radar/spider chart representing percentile data."""
+    chart_coords = chart_coords or (width / 2 - 25, height - 300)
+    N = len(labels)
+    theta = radar_factory(N, frame='polygon')
+    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(projection='radar'))
+    ax.set_ylim(0, 100)
+    for r in [25, 50, 75, 100]:
+        points = [(angle, r) for angle in theta] + [(theta[0], r)]
+        ax.plot([p[0] for p in points], [p[1] for p in points],
+                color='gray', lw=2, alpha=0.3)
+    for angle in theta:
+        ax.plot([angle, angle], [0, 100], color='gray', lw=2, alpha=0.3)
+    ax.plot(theta, spider_data, color=line_color, linewidth=5,
+            marker='o', markersize=10)
+    ax.fill(theta, spider_data, color=fill_color, alpha=0.2)
+    ax.set_varlabels(labels)
+    ax.set_yticks([0, 25, 50, 75, 100])
+    ax.set_yticklabels(["0", "25", "50", "75", "100"], fontsize=12)
+    plt.tight_layout(pad=0.5)
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', bbox_inches='tight')
+    buf.seek(0)
+    img = ImageReader(buf)
+    c.drawImage(img, chart_coords[0], chart_coords[1],
+                chart_size[0], chart_size[1], mask='auto')
+
+
+def draw_textbox(c, x, y, width, height, text,
+                 font_name="Helvetica", font_size=10):
+    """Helper to draw a wrapped text box."""
+    padding = 5
+    c.setStrokeColor(white)
+    c.rect(x, y - height, width, height, stroke=1, fill=0)
+    text_obj = c.beginText()
+    text_obj.setTextOrigin(x + padding, y - padding - font_size)
+    text_obj.setFont(font_name, font_size)
+    max_chars = int((width - 2 * padding) / (font_size * 0.5))
+    for line in textwrap.wrap(text, max_chars):
+        text_obj.textLine(line)
+    c.drawText(text_obj)
+
+
+def draw_composite_score(c, width, percentile_score,
+                         chart_coords=None,
+                         chart_size=COMPOSITE_CHART_SIZE,
+                         fonts=None, text_box=None):
+    """Draw the composite score gauge and descriptive text."""
+    fonts = fonts or {"title": ("Helvetica-Bold", 10),
+                      "body": ("Helvetica", 10)}
+    chart_coords = chart_coords or (width / 2 + 25, 250)
+    text_box = text_box or (20, 380, 300, 300)
+
+    composite_figure = composite_score_chart(percentile_score)
+    c.drawImage(composite_figure, chart_coords[0], chart_coords[1],
+                width=chart_size[0], height=chart_size[1], mask='auto')
+
+    c.setFont(*fonts["title"])
+    c.drawString(25, 390, f"Composite Score: {percentile_score}")
+    c.setFont(*fonts["body"])
+    text = ("Your composite score condenses multiple performance metrics into one simple number reflecting your overall athleticism. "
+            "It shows how you rank within NextEra's in-house athletes, giving you a clear sense of where you stand. This powerful metric serves as a benchmark "
+            "for tracking progress and driving performance.")
+    draw_textbox(c, *text_box, text)
+
+
 
 # -- PDF GENERATION FUNCTIONS ------------------------------------------------------
-def generate_athlete_pdf(athlete_name, test_date, min_age, max_age, output_path, client=None):
-    if client is None:
+def generate_athlete_pdf(
+    athlete_name,
+    test_date,
+    min_age,
+    max_age,
+    output_path,
+    client=None,
+    use_cached_data: bool = True,
+):
+    if client is None and not use_cached_data:
         client = ValdClient()
     # 0.0) Data Pulling / Use
-    # 0.0) Run the athlete data pull (saves to Output CSVs/Athlete/Full_Data.csv)
-    athlete_data = get_athlete_data(athlete_name, test_date, client)
-    # 0.1) Run the reference data pull (saves to Output CSVs/Reference/HJ_ref.csv, etc.)
-    pull_all_ref(min_age, max_age)
+    if not use_cached_data:
+        # 0.0) Run the athlete data pull (saves to Output CSVs/Athlete/Full_Data.csv)
+        get_athlete_data(athlete_name, test_date, client)
+        # 0.1) Run the reference data pull (saves to Output CSVs/Reference/HJ_ref.csv, etc.)
+        pull_all_ref(min_age, max_age)
     # 0.2) Set up the test date formatted
     test_date_formatted = test_date.strftime("%B %d, %Y")
 
@@ -75,30 +199,8 @@ def generate_athlete_pdf(athlete_name, test_date, min_age, max_age, output_path,
     width, height = portrait(letter)
 
     # 1.2) Page Formatting
-    # 1.2.1) Athlete Name (above lines)
-    c.setFont("Helvetica-Bold", 30) 
-    c.drawString(25, height - 45, athlete_name) # (H: height - 45, height - 15)
-    # 1.2.2) Outer Borders (Top and Bottom Only)
-    c.setFillColorRGB(0, 0, 0) # Black
-    c.rect(25, height - 58, width - 50, 8, stroke=0, fill=1) # (H: height - 58, height - 50)
-    c.setFillColorRGB(0.5, 0.5, 0.5) # Grey
-    c.rect(25, height - 64, width - 50, 4, stroke=0, fill=1) # (H: height - 64, height - 60)
-    c.setFillColorRGB(0, 0, 0) # Black
-    # 1.2.3) Performance Report Description 
-    c.setFont("Helvetica", 15)
-    c.drawString(25, height - 80, f"Performance Assessment Overview - {test_date_formatted}")
-    # 1.2.4) Logo (TODO: Figure out where this should go)
-    # 1.2.4.1) Logo Lines
-    c.setFillColorRGB(0.5, 0.5, 0.5) # Grey
-    c.rect(25, 40, width - 205, 4, stroke=0, fill=1)
-    c.setFillColorRGB(0, 0, 0) # Black
-    c.rect(25, 30, width - 205, 8, stroke=0, fill=1)
-    # 1.2.4.2) Logo Image
-    logo_width = 72 * 2 # 72 pixels is an inch
-    logo_height = 72 / 2 # 72 pixels is an inch
-    logo_x = width - logo_width - 25
-    logo_y = 18
-    c.drawImage('Media/horizontal throwing.png', logo_x, logo_y, width=logo_width, height=logo_height, mask='auto')
+    draw_header(c, athlete_name, test_date_formatted, width, height)
+
 
     # 1.3.0) Drawing in the athlete spider chart (right side of page)
     athlete_name = athlete_name.lower().strip()
@@ -109,71 +211,63 @@ def generate_athlete_pdf(athlete_name, test_date, min_age, max_age, output_path,
     imtp_ref_data = pd.read_csv("Output CSVs/Reference/IMTP_ref.csv")
     ppu_ref_data = pd.read_csv("Output CSVs/Reference/PPU_ref.csv")
     cmj_ref_data = pd.read_csv("Output CSVs/Reference/CMJ_ref.csv") 
-    # 1.3.2.0) HJ RSI Percentile (Reactive Strength)
-    athlete_hj_rsi = round(athlete_data[athlete_data['metric_id'] == 'HJ_AVJ_RSI_Trial_']['Value'].values[0], 2)
-    hj_percentile = round(stats.percentileofscore(hj_ref_data['hop_rsi_avg_best_5'], athlete_hj_rsi), 2)
-    # 1.3.2.1) IMTP Peak Vertical Percentile (Lower Half Strength)
-    athlete_imtp_peak = round(athlete_data[athlete_data['metric_id'] == 'IMTP_PEAK_VERTICAL_FORCE_Trial_N']['Value'].values[0], 2)  
-    imtp_percentile = round(stats.percentileofscore(imtp_ref_data['PEAK_VERTICAL_FORCE_Trial_N'], athlete_imtp_peak), 2)
-    # 1.3.2.2) PPU Peak Concentric Force Percentile (Upper Half Strength)
-    athlete_ppu_peak = round(athlete_data[athlete_data['metric_id'] == 'PPU_PEAK_CONCENTRIC_FORCE_Trial_N']['Value'].values[0], 2)
-    ppu_percentile = round(stats.percentileofscore(ppu_ref_data['PEAK_CONCENTRIC_FORCE_Trial_N'], athlete_ppu_peak), 2)
-    # 1.3.2.3) CMJ Peak Power Percentile (Peak Power)
+    # 1.3.2.0) Edited to deal with CMJ metrics first (HJ RSI Percentile (Reactive Strength))
+    #Peak Power
     athlete_cmj_peak = round(athlete_data[athlete_data['metric_id'] == 'CMJ_PEAK_TAKEOFF_POWER_Trial_W']['Value'].values[0], 2)
     cmj_pp_percentile = round(stats.percentileofscore(cmj_ref_data['PEAK_TAKEOFF_POWER_Trial_W'], athlete_cmj_peak), 2)
-    # 1.3.2.4) CMJ Relative Power Percentile (Relative Power)
-    athlete_cmj_rel = round(athlete_data[athlete_data['metric_id'] == 'CMJ_BODYMASS_RELATIVE_TAKEOFF_POWER_Trial_W/kg']['Value'].values[0], 2)
-    cmj_rp_percentile = round(stats.percentileofscore(cmj_ref_data['BODYMASS_RELATIVE_TAKEOFF_POWER_Trial_W_kg'], athlete_cmj_rel), 2)
-    # 1.3.2..) ???? Anything Else? (Can add more later)
+        #Concentric Impulse
+    athlete_cmj_con_imp = round(athlete_data[athlete_data['metric_id'] == 'CMJ_CONCENTRIC_IMPULSE_Trial_Ns']['Value'].values[0], 2)
+    cmj_con_imp_percentile = round(stats.percentileofscore(cmj_ref_data['CONCENTRIC_IMPULSE_Trial_Ns'], athlete_cmj_con_imp), 2)
+        #Eccentric Braking RFD
+    athlete_cmj_eb_rfd = round(athlete_data[athlete_data['metric_id'] == 'CMJ_ECCENTRIC_BRAKING_RFD_Trial_N/s']['Value'].values[0], 2)
+    cmj_eb_rfd_percentile = round(stats.percentileofscore(cmj_ref_data['ECCENTRIC_BRAKING_RFD_Trial_N_s'], athlete_cmj_eb_rfd), 2)
+        #Body Mass Relative Takeoff Power
+    athlete_cmj_bm_rel_peak = round(athlete_data[athlete_data['metric_id'] == 'CMJ_BODYMASS_RELATIVE_TAKEOFF_POWER_Trial_W/kg']['Value'].values[0], 2)
+    cmj_bm_rel_peak_percentile = round(stats.percentileofscore(cmj_ref_data['BODYMASS_RELATIVE_TAKEOFF_POWER_Trial_W_kg'], athlete_cmj_bm_rel_peak), 2)
+    
+    # 1.3.2.1) Second is PPU metrics
+        #Peak Concentric Force
+    athlete_ppu_peak = round(athlete_data[athlete_data['metric_id'] == 'PPU_PEAK_CONCENTRIC_FORCE_Trial_N']['Value'].values[0], 2)
+    ppu_percentile = round(stats.percentileofscore(ppu_ref_data['PEAK_CONCENTRIC_FORCE_Trial_N'], athlete_ppu_peak), 2)
+    
+    # 1.3.2.2) Third is IMTP metrics
+        #Peak Vertical Force
+    athlete_imtp_peak = round(athlete_data[athlete_data['metric_id'] == 'IMTP_PEAK_VERTICAL_FORCE_Trial_N']['Value'].values[0], 2)  
+    imtp_percentile = round(stats.percentileofscore(imtp_ref_data['PEAK_VERTICAL_FORCE_Trial_N'], athlete_imtp_peak), 2)
+   
+    # 1.3.2.4) Fourth is HJ metrics
+
+    athlete_hj_rsi = round(athlete_data[athlete_data['metric_id'] == 'HJ_AVJ_RSI_Trial_']['Value'].values[0], 2)
+    hj_percentile = round(stats.percentileofscore(hj_ref_data['hop_rsi_avg_best_5'], athlete_hj_rsi), 2)
+   
     # 1.3.3) Compiling all percentile values together
-    spider_data = [hj_percentile, imtp_percentile, ppu_percentile, cmj_pp_percentile, cmj_rp_percentile]
+    spider_data = [hj_percentile, imtp_percentile, ppu_percentile, cmj_pp_percentile, cmj_bm_rel_peak_percentile]
     # 1.3.4) Creating and displaying the spider chart
-    N = len(labels)
-    theta = radar_factory(N, frame='polygon')
-    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(projection='radar'))
-    ax.set_ylim(0, 100) 
-    for r in [25, 50, 75, 100]:
-        points = [(angle, r) for angle in theta] + [(theta[0], r)]
-        ax.plot([p[0] for p in points], [p[1] for p in points], color='gray', lw=2, alpha=0.3)
-    for angle in theta:
-        ax.plot([angle, angle], [0, 100], color='gray', lw=2, alpha=0.3)
-    ax.plot(theta, spider_data, color="cornflowerblue", linewidth=5, marker='o', markersize=10)
-    ax.fill(theta, spider_data, color="cornflowerblue", alpha=0.2)
-    ax.set_varlabels(labels)
-    ax.set_yticks([0, 25, 50, 75, 100])
-    ax.set_yticklabels(["0", "25", "50", "75", "100"], fontsize=12)
-    plt.tight_layout(pad=0.5)
-    # 1.3.5) Saving and converting spider chart to image
-    buf = io.BytesIO()
-    fig.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
-    img = ImageReader(buf)
-    c.drawImage(img, width / 2 - 25, height - 300, 270, 180, mask='auto')
+    draw_spider_chart(c, width, height, spider_data, labels)
 
     # 1.4) Displaying the spider chart data
-    c.setFont("Helvetica-Bold", 10)
+    c.setFont("Helvetica-Bold", 12)
     spacing = 15
-    top = height - 130
-    c.drawString(25, top - spacing, "Reactive Strength:")
-    c.drawString(25, top - 3 * spacing, "Lower Half Strength:")
-    c.drawString(25, top - 5 * spacing, "Upper Half Strength:")
-    c.drawString(25, top - 7 * spacing, "Peak Power:")
-    c.drawString(25, top - 9 * spacing, "Relative Power:")
+    top = height - 140
+    c.drawString(25, top - spacing, "Countermovement Jump Performance:")
+    c.drawString(25, top - 3 * spacing, "Plyometric Push Up Performance:")
+    c.drawString(25, top - 5 * spacing, "Isometric Mid Thigh Pull Performance:")
+    c.drawString(25, top - 7 * spacing, "Hop Jump Performance:")
     c.setFont("Helvetica", 10)
     c.drawString(25, top - 2 * spacing, f"HJ Reactive Strength Index: {athlete_hj_rsi} - {hj_percentile}%")
     c.drawString(25, top - 4 * spacing, f"IMTP Peak Vertical Force: {athlete_imtp_peak}(N) - {imtp_percentile}%")
     c.drawString(25, top - 6 * spacing, f"PPU Peak Concentric Force: {athlete_ppu_peak}(N) - {ppu_percentile}%")
     c.drawString(25, top - 8 * spacing, f"CMJ Peak Power: {athlete_cmj_peak}(W) - {cmj_pp_percentile}%")
-    c.drawString(25, top - 10 * spacing, f"CMJ Relative Peak Power: {athlete_cmj_rel}(W/kg) - {cmj_rp_percentile}%")
+    c.drawString(25, top - 10 * spacing, f"CMJ Relative Peak Power: {athlete_cmj_bm_rel_peak}(W/kg) - {cmj_bm_rel_peak_percentile}%")
 
     # 1.6) Displaying the athlete's composite score
     # TODO: FIGURE OUT PROPER COMPOSITE SCORE METHOD (THIS IS NOT IT)
     # 1.6.1) Calculating the composite score
     weights = {'CMJ_BODY_WEIGHT_LBS_Trial_lb': (cmj_ref_data, 'BODY_WEIGHT_LBS_Trial_lb', 0.1),
-               'CMJ_PEAK_TAKEOFF_POWER_Trial_W': (cmj_ref_data, 'PEAK_TAKEOFF_POWER_Trial_W', 0.2),
-               'CMJ_CONCENTRIC_IMPULSE_Trial_Ns': (cmj_ref_data, 'CONCENTRIC_IMPULSE_Trial_Ns', 0.2),
-               'CMJ_ECCENTRIC_BRAKING_IMPULSE_Trial_Ns': (cmj_ref_data, 'ECCENTRIC_BRAKING_IMPULSE_Trial_Ns', 0.18),
-               'PPU_PEAK_CONCENTRIC_FORCE_Trial_N': (ppu_ref_data, 'PEAK_CONCENTRIC_FORCE_Trial_N', 0.12),
+               'CMJ_PEAK_TAKEOFF_POWER_Trial_W': (cmj_ref_data, 'PEAK_TAKEOFF_POWER_Trial_W', 0.1),
+               'CMJ_CONCENTRIC_IMPULSE_Trial_Ns': (cmj_ref_data, 'CONCENTRIC_IMPULSE_Trial_Ns', 0.1),
+               'CMJ_ECCENTRIC_BRAKING_RFD_Trial_N/s': (cmj_ref_data, 'ECCENTRIC_BRAKING_RFD_Trial_N_s', 0.1),
+               'PPU_PEAK_CONCENTRIC_FORCE_Trial_N': (ppu_ref_data, 'PEAK_CONCENTRIC_FORCE_Trial_N', 0.1),
                'IMTP_PEAK_VERTICAL_FORCE_Trial_N': (imtp_ref_data, 'PEAK_VERTICAL_FORCE_Trial_N', 0.15),
                'HJ_AVJ_RSI_Trial_': (hj_ref_data, 'hop_rsi_avg_best_5', 0.05)}
     percentile_score = 0
@@ -185,34 +279,7 @@ def generate_athlete_pdf(athlete_name, test_date, min_age, max_age, output_path,
         percentile_score += temp_score * weight
     # 1.6.2) Displaying the composite score chart
     percentile_score = round(percentile_score, 2)
-    composite_figure = composite_score_chart(percentile_score)
-    c.drawImage(composite_figure, width / 2 + 25, 250, width=200, height=200, mask='auto')
-    # 1.6.3) Description of Composite Score and Value
-    # 1.6.3.1) Text Box Helper
-    def draw_textbox(c, x, y, width, height, text):
-        font_name = "Helvetica"
-        font_size = 10
-        padding = 5
-        # Drawing the box
-        c.setStrokeColor(white)
-        c.rect(x, y - height, width, height, stroke=1, fill=0)
-        # Drawing the text
-        text_obj = c.beginText()
-        text_obj.setTextOrigin(x + padding, y - padding - font_size)
-        text_obj.setFont(font_name, font_size)
-        # Wrap the text to fit within the box
-        max_chars = int((width - 2 * padding) / (font_size * 0.5))
-        for line in textwrap.wrap(text, max_chars):
-            text_obj.textLine(line)
-        c.drawText(text_obj)
-    # 1.6.3.2) Information
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(25, 390, f"Composite Score: {percentile_score}")
-    c.setFont("Helvetica", 10)
-    text = ("Your composite score condenses multiple performance metrics into one simple number reflecting your overall athleticism. "
-            "It shows how you rank within NextEra's in-house athletes, giving you a clear sense of where you stand. This powerful metric serves as a benchmark "
-            "for tracking progress and driving performance.")
-    draw_textbox(c, 20, 380, 300, 300, text)
+    draw_composite_score(c, width, percentile_score)
 
     # 1.7) Coaches Notes
     c.setFont("Helvetica-Bold", 10)
@@ -223,20 +290,8 @@ def generate_athlete_pdf(athlete_name, test_date, min_age, max_age, output_path,
         c.line(25, i, width - 25, i)
 
 
-    # TODO: Are we happy with the percentile composite score?
-    # I guess it isn't exaclty a composite score, since it's not weighted off of all athletes
-    # Probably need to figure out old composite score method (using z-scores then weighting)
-
-
- 
-
     # Saving the PDF
     c.save()
-
-
-
-
-
 
 # -- CALLING/TESTING PDF GENERATION -----------------------------------------------
 # Calling an example with good data (Ace Kelly) (uncomment to run)
@@ -244,8 +299,12 @@ def generate_athlete_pdf(athlete_name, test_date, min_age, max_age, output_path,
 from config import PDF_OUTPUT_DIR
 from pathlib import Path
 
-# Example usage with portable paths:
-# generate_athlete_pdf("Charles Gargus", temp_date, 18, 25, str(Path(PDF_OUTPUT_DIR) / "CG_Example.pdf"))
-# generate_athlete_pdf("Dylan Tostrup", temp_date, 18, 25, str(Path(PDF_OUTPUT_DIR) / "DT_Example.pdf"))
 temp_date = datetime(2025, 9, 4).date()
-generate_athlete_pdf("Blake Maestas", temp_date, 15, 18, str(Path(PDF_OUTPUT_DIR) / "BM_Example.pdf"))
+generate_athlete_pdf(
+    "Blake Maestas",
+    temp_date,
+    15,
+    18,
+    str(Path(PDF_OUTPUT_DIR) / "BM_Example.pdf"),
+    use_cached_data=True,
+)
