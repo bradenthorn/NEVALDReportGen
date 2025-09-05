@@ -247,5 +247,5 @@ from pathlib import Path
 # Example usage with portable paths:
 # generate_athlete_pdf("Charles Gargus", temp_date, 18, 25, str(Path(PDF_OUTPUT_DIR) / "CG_Example.pdf"))
 # generate_athlete_pdf("Dylan Tostrup", temp_date, 18, 25, str(Path(PDF_OUTPUT_DIR) / "DT_Example.pdf"))
-temp_date = datetime(2025, 8, 3).date()
-generate_athlete_pdf("Braden Thorn", temp_date, 25, 35, str(Path(PDF_OUTPUT_DIR) / "BT_Example.pdf"))
+temp_date = datetime(2025, 9, 4).date()
+generate_athlete_pdf("Blake Maestas", temp_date, 15, 18, str(Path(PDF_OUTPUT_DIR) / "BM_Example.pdf"))

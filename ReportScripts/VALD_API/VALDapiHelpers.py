@@ -148,6 +148,7 @@ def get_FD_results(testId, token, test_type):
 
 
 
-test_token = get_vald_token()
-test = get_profiles(test_token)
-print(test.columns)
+# Test code removed - uncomment below to test token generation
+# test_token = get_vald_token()
+# test = get_profiles(test_token)
+# print(test.columns)
