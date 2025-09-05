@@ -18,11 +18,13 @@ from datetime import datetime
 import pandas as pd
 import sys
 import pathlib
+from pathlib import Path
 from typing import Optional
 # Add the project root to Python path
 project_root = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
 # -- IMPORTS FROM OTHER SCRIPTS ---------------------------------------------------
+from config import OUTPUT_DIR
 from ReportScripts.VALD_API.vald_client import ValdClient
 from ReportScripts.VALD_API.VALDapiHelpers import cmj_z_score
 
@@ -71,7 +73,8 @@ def get_athlete_data(
         client.get_fd_results(testID, testType)
 
     # Step 5: Select best trials and merge data
-    cmj_df = pd.read_csv("Output CSVs/Athlete/CMJ.csv")
+    athlete_dir = Path(OUTPUT_DIR) / "Athlete"
+    cmj_df = pd.read_csv(athlete_dir / "CMJ.csv")
     cmj_trial_columns = [col for col in cmj_df.columns if col.startswith("trial")]
     cmj_trial_z_scores = []
     for trial in cmj_trial_columns:
@@ -93,7 +96,7 @@ def get_athlete_data(
     cmj_df.rename(columns={f"trial {best_trial}": "Value"}, inplace=True)
 
     # HJ: average best 5 RSI values (excluding highest)
-    hj_df = pd.read_csv("Output CSVs/Athlete/HJ.csv")
+    hj_df = pd.read_csv(athlete_dir / "HJ.csv")
     hj_trial_columns = [col for col in hj_df.columns if col.startswith("trial")]
     rsi_values = [round(float(hj_df[hj_df["metric_id"] == "HOP_RSI_Trial_"][trial].values[0]), 5) for trial in hj_trial_columns]
     rsi_values.sort(reverse=True)
@@ -102,7 +105,7 @@ def get_athlete_data(
     cmj_df = pd.concat([cmj_df, pd.DataFrame([new_row])], ignore_index=True)
 
     # IMTP: take trial with highest peak vertical force
-    imtp_df = pd.read_csv("Output CSVs/Athlete/IMTP.csv")
+    imtp_df = pd.read_csv(athlete_dir / "IMTP.csv")
     imtp_trial_columns = [col for col in imtp_df.columns if col.startswith("trial")]
     peak_values = [
         round(float(imtp_df[imtp_df["metric_id"] == "PEAK_VERTICAL_FORCE_Trial_N"][trial].values[0]), 5)
@@ -122,7 +125,7 @@ def get_athlete_data(
     cmj_df = pd.concat([cmj_df, pd.DataFrame(new_rows)], ignore_index=True)
 
     # PPU: take trial with best peak concentric force
-    ppu_df = pd.read_csv("Output CSVs/Athlete/PPU.csv")
+    ppu_df = pd.read_csv(athlete_dir / "PPU.csv")
     ppu_trial_columns = [col for col in ppu_df.columns if col.startswith("trial")]
     peak_values = [
         round(float(ppu_df[ppu_df["metric_id"] == "PEAK_CONCENTRIC_FORCE_Trial_N"][trial].values[0]), 5)
@@ -134,6 +137,6 @@ def get_athlete_data(
     ppu_df["metric_id"] = "PPU_" + ppu_df["metric_id"]
     cmj_df = pd.concat([cmj_df, ppu_df], ignore_index=True)
 
-    cmj_df.to_csv("Output CSVs/Athlete/Full_Data.csv", index=False)
+    cmj_df.to_csv(athlete_dir / "Full_Data.csv", index=False)
     return cmj_df
 

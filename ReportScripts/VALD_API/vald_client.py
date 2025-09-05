@@ -1,6 +1,7 @@
 import os
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 import pandas as pd
@@ -9,6 +10,7 @@ from dotenv import load_dotenv
 
 from .token_gen import get_vald_token
 from .metric_vars import METRICS_OF_INTEREST, unit_map
+from config import OUTPUT_DIR
 
 load_dotenv()
 
@@ -133,5 +135,7 @@ class ValdClient:
         pivot.columns = [f"trial {c}" for c in pivot.columns]
         pivot = pivot.reset_index()
         pivot = pivot[pivot["metric_id"].isin(METRICS_OF_INTEREST[test_type])]
-        pivot.to_csv(f"Output CSVs/Athlete/{test_type}.csv", index=False)
+        athlete_dir = Path(OUTPUT_DIR) / "Athlete"
+        athlete_dir.mkdir(parents=True, exist_ok=True)
+        pivot.to_csv(athlete_dir / f"{test_type}.csv", index=False)
         return pivot

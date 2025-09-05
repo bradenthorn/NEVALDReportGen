@@ -4,20 +4,23 @@
 
 # -- IMPORTS ----------------------------------------------------------------------
 import pathlib
+from pathlib import Path
 import sys
 import pandas as pd
 # -- IMPORTS FROM OTHER SCRIPTS ---------------------------------------------------
 # Add the project root to Python path
 project_root = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
+from config import OUTPUT_DIR
 
 # -- FUNCTIONS --------------------------------------------------------------------
 def calculate_composite_score():
-    # 1.0) Read in the reference data
-    cmj_ref = pd.read_csv("Output CSVs/Reference/CMJ_ref.csv")
-    hj_ref = pd.read_csv("Output CSVs/Reference/HJ_ref.csv")
-    imtp_ref = pd.read_csv("Output CSVs/Reference/IMTP_ref.csv")
-    ppu_ref = pd.read_csv("Output CSVs/Reference/PPU_ref.csv")
+   # 1.0) Read in the reference data
+    ref_dir = Path(OUTPUT_DIR) / "Reference"
+    cmj_ref = pd.read_csv(ref_dir / "CMJ_ref.csv")
+    hj_ref = pd.read_csv(ref_dir / "HJ_ref.csv")
+    imtp_ref = pd.read_csv(ref_dir / "IMTP_ref.csv")
+    ppu_ref = pd.read_csv(ref_dir / "PPU_ref.csv")
     # 1.0.1) Clean the individual reference data
     cmj_ref = cmj_ref[['athlete_name', 'BODY_WEIGHT_LBS_Trial_lb', 'PEAK_TAKEOFF_POWER_Trial_W', 
                        'CONCENTRIC_IMPULSE_Trial_Ns', 'ECCENTRIC_BRAKING_IMPULSE_Trial_Ns']]

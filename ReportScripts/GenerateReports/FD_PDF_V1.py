@@ -27,7 +27,7 @@ from matplotlib.projections.polar import PolarAxes # Matplotlib for plotting
 from matplotlib.projections import register_projection # Matplotlib for plotting
 from matplotlib.spines import Spine # Matplotlib for plotting
 from matplotlib.transforms import Affine2D # Matplotlib for plotting
-from matplotlib.path import Path # Matplotlib for plotting
+from matplotlib.path import Path as MplPath # Matplotlib for plotting (avoid clash with pathlib.Path)
 import matplotlib.pyplot as plt # Matplotlib for plotting
 import textwrap # For wrapping text
 
@@ -39,6 +39,7 @@ sys.path.append(str(project_root))
 current_dir = pathlib.Path(__file__).parent
 sys.path.insert(0, str(current_dir))
 
+from config import MEDIA_DIR
 from charts import radar_factory, composite_score_chart
 
 # -- CONSTANTS --------------------------------------------------------------------
@@ -54,7 +55,7 @@ HEADER_COLORS = {
     "border_bottom": (0.5, 0.5, 0.5),
 }
 
-LOGO_PATH = "Media/horizontal throwing.png"
+LOGO_PATH = str(Path(MEDIA_DIR) / "horizontal throwing.png")
 LOGO_SIZE = (72 * 2, 72 / 2)  # width, height
 SPIDER_CHART_SIZE = (270, 180)
 COMPOSITE_CHART_SIZE = (200, 200)
@@ -175,7 +176,7 @@ def generate_athlete_pdf(
     test_date_formatted = test_date.strftime("%B %d, %Y")
 
     # 1.1) Set up the PDF canvas
-    c = canvas.Canvas(output_path, pagesize=portrait(letter))
+    c = canvas.Canvas(str(output_path), pagesize=portrait(letter))
     width, height = portrait(letter)
 
     # 1.2) Page Formatting
@@ -290,20 +291,22 @@ def generate_athlete_pdf(
 # temp_date = datetime(2025, 7, 1).date()
 from config import PDF_OUTPUT_DIR
 from pathlib import Path
-from data_loader import load_athlete_and_reference_data
+from data_loader import DataLoader
 
-temp_date = datetime(2025, 9, 2).date()
-athlete_df, ref_data = load_athlete_and_reference_data(
-    "Cole Cates",
-    temp_date,
-    15,
-    18,
-    use_cached_data=False,
-)
+temp_date = datetime(2025, 9, 4).date()
+loader = DataLoader()
+
+#loader.refresh_cache(
+#    "Blake Maestas",
+#    temp_date,
+#   15,
+#    18,
+#)
+athlete_df, ref_data = loader.load()
 generate_athlete_pdf(
-    "Cole Cates",
+    "Blake Maestas",
     temp_date,
-    str(Path(PDF_OUTPUT_DIR) / "CC_Example.pdf"),
+    Path(PDF_OUTPUT_DIR) / "BM_Example.pdf",
     athlete_df,
     ref_data,
 )

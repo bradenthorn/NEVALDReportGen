@@ -1,14 +1,17 @@
 """Utilities for loading athlete and reference data.
 
 This module centralizes reading the CSV outputs used in the report
-generation scripts.  It also encapsulates the logic for optionally
-refreshing the cached CSV files by pulling data from VALD or the
-reference database.
+generation scripts.  It also provides helpers for refreshing the cached
+CSV files by pulling data from VALD or the reference database.  The
+``load`` method only reads from existing CSV files; callers that need
+fresh data should invoke :meth:`DataLoader.refresh_cache` prior to
+calling :meth:`DataLoader.load`.
 """
 
 from __future__ import annotations
 
 import pathlib
+from pathlib import Path
 import sys
 from typing import Dict, Tuple
 
@@ -18,6 +21,7 @@ import pandas as pd
 project_root = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
 
+from config import OUTPUT_DIR
 from ReportScripts.VALD_API.vald_client import ValdClient
 from ReportScripts.VALD_API.ind_ath_data import get_athlete_data
 from ReportScripts.PullRefData.pull_all import pull_all_ref
@@ -27,40 +31,30 @@ class DataLoader:
     """Load athlete and reference data for report generation."""
 
     def __init__(self, base_dir: pathlib.Path | None = None) -> None:
-        self.base_dir = base_dir or project_root / "Output CSVs"
+        self.base_dir = Path(base_dir) if base_dir else Path(OUTPUT_DIR)
 
-    def load(
+    # ------------------------------------------------------------------
+    # Cache management
+    def refresh_cache(
         self,
         athlete_name: str,
         test_date,
         min_age: int,
         max_age: int,
-        use_cached_data: bool = False,
         client: ValdClient | None = None,
-    ) -> Tuple[pd.DataFrame, Dict[str, pd.DataFrame]]:
-        """Return athlete data and reference datasets.
+    ) -> None:
+        """Refresh the CSV cache files with up-to-date data."""
 
-        Parameters
-        ----------
-        athlete_name: str
-            Name of the athlete whose data should be loaded.
-        test_date: datetime.date
-            Date of the test for the athlete.
-        min_age, max_age: int
-            Age range for pulling reference data when refreshing caches.
-        use_cached_data: bool
-            If ``False`` the underlying CSV files are refreshed using
-            ``get_athlete_data`` and ``pull_all_ref`` before being read.
-        client: ValdClient | None
-            Optional VALD client used when refreshing the athlete data.
-        """
+        if client is None:
+            client = ValdClient()
 
-        if not use_cached_data:
-            if client is None:
-                client = ValdClient()
-            # Update the CSV cache files
-            get_athlete_data(athlete_name, test_date, client)
-            pull_all_ref(min_age, max_age)
+        get_athlete_data(athlete_name, test_date, client)
+        pull_all_ref(min_age, max_age)
+
+    # ------------------------------------------------------------------
+    # Data loading
+    def load(self) -> Tuple[pd.DataFrame, Dict[str, pd.DataFrame]]:
+        """Return athlete data and reference datasets from existing CSV files."""
 
         athlete_df = pd.read_csv(self.base_dir / "Athlete" / "Full_Data.csv")
         ref_dir = self.base_dir / "Reference"
@@ -73,7 +67,13 @@ class DataLoader:
         return athlete_df, ref_data
 
 
-def load_athlete_and_reference_data(*args, **kwargs):
-    """Convenience wrapper around :class:`DataLoader`."""
-    return DataLoader().load(*args, **kwargs)
+def load_athlete_and_reference_data() -> Tuple[pd.DataFrame, Dict[str, pd.DataFrame]]:
+    """Convenience wrapper to load athlete and reference data from cache."""
 
+    return DataLoader().load()
+
+
+def refresh_cache(*args, **kwargs) -> None:
+    """Convenience wrapper around :meth:`DataLoader.refresh_cache`."""
+
+    DataLoader().refresh_cache(*args, **kwargs)

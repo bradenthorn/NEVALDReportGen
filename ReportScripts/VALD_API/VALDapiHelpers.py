@@ -13,12 +13,14 @@ import requests
 import pandas as pd
 from datetime import datetime
 from dotenv import load_dotenv
-import pathlib 
-import sys 
+import pathlib
+import sys
+from pathlib import Path
 # Add the project root to Python path
 project_root = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
 # -- IMPORTS FROM OTHER SCRIPTS ---------------------------------------------------
+from config import OUTPUT_DIR
 from ReportScripts.VALD_API.metric_vars import (METRICS_OF_INTEREST, unit_map)
 from ReportScripts.VALD_API.token_gen import get_vald_token
 
@@ -141,7 +143,9 @@ def get_FD_results(testId, token, test_type):
         # Keeping only the metrics of interest
         pivot = pivot[pivot['metric_id'].isin(METRICS_OF_INTEREST[test_type])]
         # Returning the filtered data frame
-        pivot.to_csv(f"Output CSVs/Athlete/{test_type}.csv")
+        athlete_dir = Path(OUTPUT_DIR) / "Athlete"
+        athlete_dir.mkdir(parents=True, exist_ok=True)
+        pivot.to_csv(athlete_dir / f"{test_type}.csv")
         return pivot
     else:
         print(f"Failed to get FD results: {response.status_code}")
