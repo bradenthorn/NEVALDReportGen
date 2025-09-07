@@ -28,10 +28,77 @@ from config import OUTPUT_DIR
 from ReportScripts.VALD_API.vald_client import ValdClient
 from ReportScripts.VALD_API.VALDapiHelpers import cmj_z_score
 
-# Temporarily need to manuall put test session in:
-#TEMP_TEST_SESSION = datetime(2025, 7, 1).date() # July 1, 2025 (Charles Gargus)
-#TEMP_TEST_SESSION = datetime(2025, 6, 29).date() # July 29, 2025 (Dylan Tostrup)
-#TEMP_TEST_SESSION = datetime(2025, 8, 3).date() # August 1, 2025 (Braden Thorn)
+def select_best_cmj_trial(df: pd.DataFrame) -> pd.DataFrame:
+    """Return CMJ metrics for the best trial based on z-score."""
+    trial_columns = [col for col in df.columns if col.startswith("trial")]
+    z_scores = []
+    for trial in trial_columns:
+        trial_score = cmj_z_score(
+            pd.to_numeric(df[df["metric_id"] == "CONCENTRIC_IMPULSE_Trial_Ns"][trial].values[0]),
+            pd.to_numeric(df[df["metric_id"] == "ECCENTRIC_BRAKING_RFD_Trial_N/s"][trial].values[0]),
+            pd.to_numeric(df[df["metric_id"] == "PEAK_CONCENTRIC_FORCE_Trial_N"][trial].values[0]),
+            pd.to_numeric(
+                df[df["metric_id"] == "BODYMASS_RELATIVE_TAKEOFF_POWER_Trial_W/kg"][trial].values[0]
+            ),
+            pd.to_numeric(df[df["metric_id"] == "RSI_MODIFIED_Trial_RSI_mod"][trial].values[0]),
+            pd.to_numeric(df[df["metric_id"] == "ECCENTRIC_BRAKING_IMPULSE_Trial_Ns"][trial].values[0]),
+        )
+        z_scores.append(round(float(trial_score), 5))
+    best_trial = z_scores.index(max(z_scores)) + 1
+    best_df = df[["metric_id", f"trial {best_trial}"]].copy()
+    best_df["metric_id"] = "CMJ_" + best_df["metric_id"]
+    best_df.rename(columns={f"trial {best_trial}": "Value"}, inplace=True)
+    return best_df
+
+
+def select_best_hj_trial(df: pd.DataFrame) -> pd.DataFrame:
+    """Return a dataframe with averaged RSI values for HJ."""
+    trial_columns = [col for col in df.columns if col.startswith("trial")]
+    rsi_values = [
+        round(float(df[df["metric_id"] == "HOP_RSI_Trial_"][trial].values[0]), 5)
+        for trial in trial_columns
+    ]
+    rsi_values.sort(reverse=True)
+    average_rsi = sum(rsi_values[1:6]) / 5
+    return pd.DataFrame([
+        {"metric_id": "HJ_AVJ_RSI_Trial_", "Value": average_rsi}
+    ])
+
+
+def select_best_imtp_trial(df: pd.DataFrame) -> pd.DataFrame:
+    """Return IMTP metrics for the trial with highest peak vertical force."""
+    trial_columns = [col for col in df.columns if col.startswith("trial")]
+    peak_values = [
+        round(float(df[df["metric_id"] == "PEAK_VERTICAL_FORCE_Trial_N"][trial].values[0]), 5)
+        for trial in trial_columns
+    ]
+    best_trial = peak_values.index(max(peak_values)) + 1
+    rel_value = round(
+        float(
+            df[df["metric_id"] == "ISO_BM_REL_FORCE_PEAK_Trial_N/kg"][f"trial {best_trial}"].values[0]
+        ),
+        5,
+    )
+    rows = [
+        {"metric_id": "IMTP_PEAK_VERTICAL_FORCE_Trial_N", "Value": peak_values[best_trial - 1]},
+        {"metric_id": "IMTP_ISO_BM_REL_FORCE_PEAK_Trial_N/kg", "Value": rel_value},
+    ]
+    return pd.DataFrame(rows)
+
+
+def select_best_ppu_trial(df: pd.DataFrame) -> pd.DataFrame:
+    """Return PPU metrics for the trial with highest peak concentric force."""
+    trial_columns = [col for col in df.columns if col.startswith("trial")]
+    peak_values = [
+        round(float(df[df["metric_id"] == "PEAK_CONCENTRIC_FORCE_Trial_N"][trial].values[0]), 5)
+        for trial in trial_columns
+    ]
+    best_trial = peak_values.index(max(peak_values)) + 1
+    best_df = df[["metric_id", f"trial {best_trial}"]].copy()
+    best_df.rename(columns={f"trial {best_trial}": "Value"}, inplace=True)
+    best_df["metric_id"] = "PPU_" + best_df["metric_id"]
+    return best_df
+
 
 # -- FUNCTIONS --------------------------------------------------------------------
 def get_athlete_data(
@@ -74,69 +141,7 @@ def get_athlete_data(
 
     # Step 5: Select best trials and merge data
     athlete_dir = Path(OUTPUT_DIR) / "Athlete"
-    cmj_df = pd.read_csv(athlete_dir / "CMJ.csv")
-    cmj_trial_columns = [col for col in cmj_df.columns if col.startswith("trial")]
-    cmj_trial_z_scores = []
-    for trial in cmj_trial_columns:
-        trial_score = cmj_z_score(
-            pd.to_numeric(cmj_df[cmj_df["metric_id"] == "CONCENTRIC_IMPULSE_Trial_Ns"][trial].values[0]),
-            pd.to_numeric(cmj_df[cmj_df["metric_id"] == "ECCENTRIC_BRAKING_RFD_Trial_N/s"][trial].values[0]),
-            pd.to_numeric(cmj_df[cmj_df["metric_id"] == "PEAK_CONCENTRIC_FORCE_Trial_N"][trial].values[0]),
-            pd.to_numeric(
-                cmj_df[cmj_df["metric_id"] == "BODYMASS_RELATIVE_TAKEOFF_POWER_Trial_W/kg"][trial].values[0]
-            ),
-            pd.to_numeric(cmj_df[cmj_df["metric_id"] == "RSI_MODIFIED_Trial_RSI_mod"][trial].values[0]),
-            pd.to_numeric(cmj_df[cmj_df["metric_id"] == "ECCENTRIC_BRAKING_IMPULSE_Trial_Ns"][trial].values[0]),
-        )
-        cmj_trial_z_scores.append(round(float(trial_score), 5))
-
-    best_trial = cmj_trial_z_scores.index(max(cmj_trial_z_scores)) + 1
-    cmj_df = cmj_df[["metric_id", f"trial {best_trial}"]]
-    cmj_df["metric_id"] = "CMJ_" + cmj_df["metric_id"]
-    cmj_df.rename(columns={f"trial {best_trial}": "Value"}, inplace=True)
-
-    # HJ: average best 5 RSI values (excluding highest)
-    hj_df = pd.read_csv(athlete_dir / "HJ.csv")
-    hj_trial_columns = [col for col in hj_df.columns if col.startswith("trial")]
-    rsi_values = [round(float(hj_df[hj_df["metric_id"] == "HOP_RSI_Trial_"][trial].values[0]), 5) for trial in hj_trial_columns]
-    rsi_values.sort(reverse=True)
-    average_rsi = sum(rsi_values[1:6]) / 5
-    new_row = {"metric_id": "HJ_AVJ_RSI_Trial_", "Value": average_rsi}
-    cmj_df = pd.concat([cmj_df, pd.DataFrame([new_row])], ignore_index=True)
-
-    # IMTP: take trial with highest peak vertical force
-    imtp_df = pd.read_csv(athlete_dir / "IMTP.csv")
-    imtp_trial_columns = [col for col in imtp_df.columns if col.startswith("trial")]
-    peak_values = [
-        round(float(imtp_df[imtp_df["metric_id"] == "PEAK_VERTICAL_FORCE_Trial_N"][trial].values[0]), 5)
-        for trial in imtp_trial_columns
-    ]
-    best_trial = peak_values.index(max(peak_values)) + 1
-    rel_value = round(
-        float(
-            imtp_df[imtp_df["metric_id"] == "ISO_BM_REL_FORCE_PEAK_Trial_N/kg"][f"trial {best_trial}"].values[0]
-        ),
-        5,
-    )
-    new_rows = [
-        {"metric_id": "IMTP_PEAK_VERTICAL_FORCE_Trial_N", "Value": peak_values[best_trial - 1]},
-        {"metric_id": "IMTP_ISO_BM_REL_FORCE_PEAK_Trial_N/kg", "Value": rel_value},
-    ]
-    cmj_df = pd.concat([cmj_df, pd.DataFrame(new_rows)], ignore_index=True)
-
-    # PPU: take trial with best peak concentric force
-    ppu_df = pd.read_csv(athlete_dir / "PPU.csv")
-    ppu_trial_columns = [col for col in ppu_df.columns if col.startswith("trial")]
-    peak_values = [
-        round(float(ppu_df[ppu_df["metric_id"] == "PEAK_CONCENTRIC_FORCE_Trial_N"][trial].values[0]), 5)
-        for trial in ppu_trial_columns
-    ]
-    best_trial = peak_values.index(max(peak_values)) + 1
-    ppu_df = ppu_df[["metric_id", f"trial {best_trial}"]]
-    ppu_df.rename(columns={f"trial {best_trial}": "Value"}, inplace=True)
-    ppu_df["metric_id"] = "PPU_" + ppu_df["metric_id"]
-    cmj_df = pd.concat([cmj_df, ppu_df], ignore_index=True)
-
-    cmj_df.to_csv(athlete_dir / "Full_Data.csv", index=False)
-    return cmj_df
-
+    _cmj_df = select_best_cmj_trial(pd.read_csv(athlete_dir / "CMJ.csv"))
+    _hj_df = select_best_hj_trial(pd.read_csv(athlete_dir / "HJ.csv"))
+    _imtp_df = select_best_imtp_trial(pd.read_csv(athlete_dir / "IMTP.csv"))
+    _ppu_df = select_best_ppu_trial(pd.read_csv(athlete_dir / "PPU.csv"))
