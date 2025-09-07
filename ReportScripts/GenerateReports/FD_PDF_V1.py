@@ -294,7 +294,7 @@ from config import PDF_OUTPUT_DIR
 from pathlib import Path
 from data_loader import DataLoader
 
-temp_date = datetime(2025, 7, 1).date()
+temp_date = datetime(2025, 8, 27).date()
 loader = DataLoader()
 
 loader.refresh_cache(
