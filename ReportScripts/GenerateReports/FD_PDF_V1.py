@@ -186,7 +186,14 @@ def generate_athlete_pdf(
 
     # 1.3.0) Drawing in the athlete spider chart (right side of page)
     athlete_name = athlete_name.lower().strip()
-    labels = ["CMJ Peak Power", "CMJ Concentric Impulse", "CMJ Eccentric Braking RFD", "PPU Peak Concentric Force", "PPU Eccentric Braking RFD", "IMTP Peak Force", "HJ Reactive Strength Index"]
+    labels = [
+        "CMJ Peak Power", 
+        "CMJ Con. Imp.", 
+        "CMJ Ecc. Braking RFD", 
+        "PPU Peak Con. Force", 
+        "PPU Ecc. Braking RFD", 
+        "IMTP Peak Force", 
+        "HJ RSI"]
     # 1.3.1) Using provided athlete and reference data
     athlete_data = athlete_df
     imtp_ref_data = ref_data["imtp"]
