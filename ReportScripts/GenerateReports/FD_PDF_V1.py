@@ -186,12 +186,12 @@ def generate_athlete_pdf(
 
     # 1.3.0) Drawing in the athlete spider chart (right side of page)
     athlete_name = athlete_name.lower().strip()
-    labels = ["Reactive Strength", "Lower Half Strength", "Upper Half Strength", "Peak Power", "Relative Power"]
+    labels = ["CMJ Peak Power", "CMJ Concentric Impulse", "CMJ Eccentric Braking RFD", "PPU Peak Concentric Force", "PPU Eccentric Braking RFD", "IMTP Peak Force", "HJ Reactive Strength Index"]
     # 1.3.1) Using provided athlete and reference data
     athlete_data = athlete_df
-    hj_ref_data = ref_data["hj"]
     imtp_ref_data = ref_data["imtp"]
     ppu_ref_data = ref_data["ppu"]
+    hj_ref_data = ref_data["hj"]
     cmj_ref_data = ref_data["cmj"] 
     # 1.3.2.0) Edited to deal with CMJ metrics first (HJ RSI Percentile (Reactive Strength))
         #Peak Power
@@ -226,7 +226,7 @@ def generate_athlete_pdf(
     hj_percentile = round(stats.percentileofscore(hj_ref_data['hop_rsi_avg_best_5'], athlete_hj_rsi), 2)
    
     # 1.3.3) Compiling all percentile values together
-    spider_data = [hj_percentile, imtp_percentile, ppu_percentile, cmj_pp_percentile, cmj_bm_rel_peak_percentile]
+    spider_data = [cmj_pp_percentile, cmj_con_imp_percentile, cmj_eb_rfd_percentile, ppu_percentile, ppu_eb_rfd_percentile, imtp_percentile, hj_percentile]
     # 1.3.4) Creating and displaying the spider chart
     draw_spider_chart(c, width, height, spider_data, labels)
 
@@ -245,13 +245,13 @@ def generate_athlete_pdf(
     draw_underlined_text(c, 25, top - 9 * spacing, "Isometric Mid Thigh Pull Performance:")
     draw_underlined_text(c, 25, top - 11 * spacing, "Hop Jump Performance:")
     c.setFont("Helvetica", 10)
-    c.drawString(25, top - 2 * spacing, f"Peak Power: {athlete_cmj_peak}(W) - {cmj_pp_percentile}%")
-    c.drawString(25, top - 3 * spacing, f"Concentric Impulse: {athlete_cmj_con_imp}(Ns) - {cmj_con_imp_percentile}%")
-    c.drawString(25, top - 4 * spacing, f"Eccentric Braking RFD: {athlete_cmj_eb_rfd}(N/s) - {cmj_eb_rfd_percentile}%")
-    c.drawString(25, top - 5 * spacing, f"Body Mass Relative Peak Power: {athlete_cmj_bm_rel_peak}(W/kg) - {cmj_bm_rel_peak_percentile}%")
-    c.drawString(25, top - 7 * spacing, f"Peak Concentric Force: {athlete_ppu_peak}(N) - {ppu_percentile}%")
-    c.drawString(25, top - 8 * spacing, f"Eccentric Braking RFD: {athlete_ppu_eb_rfd}(N/s) - {ppu_eb_rfd_percentile}%")
-    c.drawString(25, top - 10 * spacing, f"Peak Vertical Force: {athlete_imtp_peak}(N) - {imtp_percentile}%")
+    c.drawString(25, top - 2 * spacing, f"Peak Power: {athlete_cmj_peak} (W) - {cmj_pp_percentile}%")
+    c.drawString(25, top - 3 * spacing, f"Concentric Impulse: {athlete_cmj_con_imp} (Ns) - {cmj_con_imp_percentile}%")
+    c.drawString(25, top - 4 * spacing, f"Eccentric Braking RFD: {athlete_cmj_eb_rfd} (N/s) - {cmj_eb_rfd_percentile}%")
+    c.drawString(25, top - 5 * spacing, f"Body Mass Relative Peak Power: {athlete_cmj_bm_rel_peak} (W/kg) - {cmj_bm_rel_peak_percentile}%")
+    c.drawString(25, top - 7 * spacing, f"Peak Concentric Force: {athlete_ppu_peak} (N) - {ppu_percentile}%")
+    c.drawString(25, top - 8 * spacing, f"Eccentric Braking RFD: {athlete_ppu_eb_rfd} (N/s) - {ppu_eb_rfd_percentile}%")
+    c.drawString(25, top - 10 * spacing, f"Peak Vertical Force: {athlete_imtp_peak} (N) - {imtp_percentile}%")
     c.drawString(25, top - 12 * spacing, f"HJ Reactive Strength Index: {athlete_hj_rsi} - {hj_percentile}%")
 
     # 1.6) Displaying the athlete's composite score

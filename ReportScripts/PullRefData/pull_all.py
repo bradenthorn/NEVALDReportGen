@@ -7,31 +7,35 @@
 import pathlib
 import sys
 from pathlib import Path
-# -- IMPORTS FROM OTHER SCRIPTS ---------------------------------------------------
-# Add the project root to Python path
+
+# Add project root to path
 project_root = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
-# -- IMPORTS FROM OTHER SCRIPTS ---------------------------------------------------
-from config import OUTPUT_DIR
-from ReportScripts.PullRefData.pull_cmj_ref import pull_cmj_ref
-from ReportScripts.PullRefData.pull_hj_ref import pull_hj_ref
-from ReportScripts.PullRefData.pull_imtp_ref import pull_imtp_ref
-from ReportScripts.PullRefData.pull_ppu_ref import pull_ppu_ref
 
-# -- FUNCTIONS --------------------------------------------------------------------
+from config import (
+    OUTPUT_DIR,
+    CMJ_TABLE,
+    HJ_TABLE,
+    IMTP_TABLE,
+    PPU_TABLE,
+)
+from ReportScripts.PullRefData.pull_ref_data import pull_ref
+
+
 def pull_all_ref(min_age: int, max_age: int):
     ref_dir = Path(OUTPUT_DIR) / "Reference"
     ref_dir.mkdir(parents=True, exist_ok=True)
-    # Step 1: Pull the CMJ reference data (No reference data yet)
-    cmj_ref = pull_cmj_ref(min_age, max_age)
-    cmj_ref.to_csv(ref_dir / "CMJ_ref.csv")
-    # Step 2: Pull the HJ reference data
-    hj_ref = pull_hj_ref(min_age, max_age)
-    hj_ref.to_csv(ref_dir / "HJ_ref.csv")
-    # Step 3: Pull the IMTP reference data
-    imtp_ref = pull_imtp_ref(min_age, max_age)
-    imtp_ref.to_csv(ref_dir / "IMTP_ref.csv")
-    # Step 4: Pull the PPU reference data
-    ppu_ref = pull_ppu_ref(min_age, max_age)
-    ppu_ref.to_csv(ref_dir / "PPU_ref.csv")
+
+    test_configs = [
+        (CMJ_TABLE, "CMJ_ref.csv", "cmj_composite_score"),
+        (HJ_TABLE, "HJ_ref.csv", "hop_rsi_avg_best_5"),
+        (IMTP_TABLE, "IMTP_ref.csv", "ISO_BM_REL_FORCE_PEAK_Trial_N_kg"),
+        (PPU_TABLE, "PPU_ref.csv", "PEAK_CONCENTRIC_FORCE_Trial_N"),
+    ]
+
+    for table, filename, sort_col in test_configs:
+        df = pull_ref(table, min_age, max_age)
+        df = df.sort_values(by=sort_col, ascending=False)
+        df = df.drop_duplicates(subset=["athlete_name"], keep="first")
+        df.to_csv(ref_dir / filename, index=False)
 
