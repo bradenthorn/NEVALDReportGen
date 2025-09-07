@@ -27,10 +27,8 @@ from matplotlib.projections.polar import PolarAxes # Matplotlib for plotting
 from matplotlib.projections import register_projection # Matplotlib for plotting
 from matplotlib.spines import Spine # Matplotlib for plotting
 from matplotlib.transforms import Affine2D # Matplotlib for plotting
-from matplotlib.path import Path as MplPath # Matplotlib for plotting (avoid clash with pathlib.Path)
 import matplotlib.pyplot as plt # Matplotlib for plotting
 import textwrap # For wrapping text
-
 # Add the project root to Python path
 project_root = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
@@ -39,8 +37,11 @@ sys.path.append(str(project_root))
 current_dir = pathlib.Path(__file__).parent
 sys.path.insert(0, str(current_dir))
 
-from config import MEDIA_DIR
 from charts import radar_factory, composite_score_chart
+from ReportScripts.VALD_API.vald_client import ValdClient
+from ReportScripts.VALD_API.ind_ath_data import get_athlete_data
+from ReportScripts.PullRefData.pull_all import pull_all_ref
+from config import MEDIA_DIR, PDF_OUTPUT_DIR
 
 # -- CONSTANTS --------------------------------------------------------------------
 # Centralized styling constants for easy layout tweaks
