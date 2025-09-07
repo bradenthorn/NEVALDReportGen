@@ -294,20 +294,20 @@ from config import PDF_OUTPUT_DIR
 from pathlib import Path
 from data_loader import DataLoader
 
-temp_date = datetime(2025, 9, 4).date()
+temp_date = datetime(2025, 7, 1).date()
 loader = DataLoader()
 
-#loader.refresh_cache(
-#    "Blake Maestas",
-#    temp_date,
-#   15,
-#    18,
-#)
+loader.refresh_cache(
+    "Charles Gargus",
+    temp_date,
+    21,
+    30,
+)
 athlete_df, ref_data = loader.load()
 generate_athlete_pdf(
-    "Blake Maestas",
+    "Charles Gargus",
     temp_date,
-    Path(PDF_OUTPUT_DIR) / "BM_Example.pdf",
+    Path(PDF_OUTPUT_DIR) / "CG_Example.pdf",
     athlete_df,
     ref_data,
 )
