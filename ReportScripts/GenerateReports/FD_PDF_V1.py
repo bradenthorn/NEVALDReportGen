@@ -29,6 +29,7 @@ from matplotlib.spines import Spine # Matplotlib for plotting
 from matplotlib.transforms import Affine2D # Matplotlib for plotting
 import matplotlib.pyplot as plt # Matplotlib for plotting
 import textwrap # For wrapping text
+import math # For mathematical operations
 # Add the project root to Python path
 project_root = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
@@ -141,25 +142,53 @@ def draw_textbox(c, x, y, width, height, text,
     c.drawText(text_obj)
 
 def calculate_zscore_composite(athlete_data, weights):
-    """Calculate a composite percentile score using weighted z-scores."""
-    total_weight = sum(w for (_, _, w) in weights.values())
-    composite_z = 0
-    for metric, (temp_ref_data, temp_metric, weight) in weights.items():
+    """Calculate a composite percentile score using weighted z-scores.
+
+    Only metrics with defined weights contribute to the score. The variance of the
+    weighted sum is accounted for so the resulting percentile better reflects the
+    intended metric weights."""
+
+    valid_metrics = set(weights.keys())
+    athlete_data = athlete_data[athlete_data["metric_id"].isin(valid_metrics)]
+
+    used_weights = {
+        metric: info
+        for metric, info in weights.items()
+        if metric in athlete_data["metric_id"].values
+    }
+
+    if not used_weights:
+        return 0
+
+    total_weight = sum(w for (_, _, w) in used_weights.values())
+    composite_z = 0.0
+    weight_sq_sum = 0.0
+
+    for metric, (ref_df, ref_col, weight) in used_weights.items():
         norm_weight = weight / total_weight if total_weight else 0
-        ref_series = pd.to_numeric(temp_ref_data[temp_metric], errors="coerce").dropna()
+        ref_series = pd.to_numeric(ref_df[ref_col], errors="coerce").dropna()
         if ref_series.empty:
             continue
         ref_mean = ref_series.mean()
         ref_std = ref_series.std()
+        if ref_std == 0:
+            continue
         row = athlete_data.loc[athlete_data["metric_id"] == metric, "Value"]
-        if row.empty or ref_std == 0:
+        if row.empty:
             continue
         temp_val = pd.to_numeric(row.iloc[0], errors="coerce")
         if pd.isna(temp_val):
             continue
         z_score = (float(temp_val) - ref_mean) / ref_std
+        z_score = max(min(z_score, 3), -3)
         composite_z += z_score * norm_weight
-    percentile_score = stats.norm.cdf(composite_z) * 100
+        weight_sq_sum += norm_weight ** 2
+
+    if weight_sq_sum == 0:
+        return 0
+    sigma = math.sqrt(weight_sq_sum)
+    standardized_z = composite_z / sigma
+    percentile_score = stats.norm.cdf(standardized_z) * 100
     return round(percentile_score, 2)
 
 def draw_composite_score(c, width, percentile_score,
@@ -324,22 +353,23 @@ from config import PDF_OUTPUT_DIR
 from pathlib import Path
 from data_loader import DataLoader
 
-temp_date = datetime(2025, 9, 2).date()
+
+temp_date = datetime(2025, 9, 4).date()
 loader = DataLoader()
 
 loader.refresh_cache(
-    "Cole Cates",
+    "Blake Maestas",
    temp_date,
-   16,
+   14,
    18,
 )
 
 
 athlete_df, ref_data = loader.load()
 generate_athlete_pdf(
-    "Cole Cates",
+    "Blake Maestas",
     temp_date,
-    Path(PDF_OUTPUT_DIR) / "CC_Example.pdf",
+    Path(PDF_OUTPUT_DIR) / "BM_Example.pdf",
     athlete_df,
     ref_data,
 )
