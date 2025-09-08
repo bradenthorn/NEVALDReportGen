@@ -348,21 +348,21 @@ from pathlib import Path
 from data_loader import DataLoader
 
 
-temp_date = datetime(2025, 6, 3).date()
+temp_date = datetime(2025, 9, 8).date()
 loader = DataLoader()
 
 loader.refresh_cache(
-    "Dylan Tostrup",
+    "Lucas Hall",
    temp_date,
-   21,
-   30,
+   14,
+   18,
 )
 
 athlete_df, ref_data = loader.load()
 generate_athlete_pdf(
-    "Dylan Tostrup",
+    "Lucas Hall",
     temp_date,
-    Path(PDF_OUTPUT_DIR) / f"DT_Example_{temp_date.strftime('%Y%m%d')}.pdf",
+    Path(PDF_OUTPUT_DIR) / f"LH_Example_{temp_date.strftime('%Y%m%d')}.pdf",
     athlete_df,
     ref_data,
 )

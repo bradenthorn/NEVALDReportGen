@@ -1,3 +1,12 @@
+"""Minimal desktop interface for generating athlete reports.
+
+The application allows staff to search for an athlete, choose a test date
+containing all required test types (CMJ, HJ, IMTP and PPU) and then generate
+the ForceDecks PDF report directly into their local ``Downloads`` folder.  The
+goal is to provide a simple script that can be packaged and emailed to other
+coaches.
+"""
+
 import tkinter as tk
 from tkinter import messagebox
 from datetime import datetime
@@ -16,20 +25,30 @@ class DesktopApp(tk.Tk):
         self.title("VALD Report Generator")
         self.geometry("500x500")
         self.client = ValdClient()
-        self.current_profiles = None
+        # Cache all profiles so we can provide auto-complete suggestions
+        self.profiles = self.client.get_profiles()
+        self.current_profiles = self.profiles
         self.current_dates = []
+        self.age_ranges = {
+            "HS (14-18)": (14, 18),
+            "College (18-22)": (18, 22),
+            "Pro (21-35)": (21, 35),
+        }
         self._build_widgets()
+        # Populate list with all athlete names on start
+        self._update_athlete_list()
 
     # ------------------------------------------------------------------
     def _build_widgets(self):
         search_frame = tk.Frame(self)
         search_frame.pack(fill="x", padx=10, pady=10)
         tk.Label(search_frame, text="Athlete Search:").pack(side="left")
-        self.search_entry = tk.Entry(search_frame)
+        self.search_var = tk.StringVar()
+        self.search_var.trace_add("write", lambda *_: self._update_athlete_list())
+        self.search_entry = tk.Entry(search_frame, textvariable=self.search_var)
         self.search_entry.pack(side="left", fill="x", expand=True, padx=5)
-        tk.Button(search_frame, text="Search", command=self.search_athletes).pack(side="left")
 
-        self.athlete_listbox = tk.Listbox(self)
+        self.athlete_listbox = tk.Listbox(self, exportselection=False)
         self.athlete_listbox.pack(fill="both", expand=True, padx=10, pady=5)
         self.athlete_listbox.bind("<<ListboxSelect>>", self.on_athlete_select)
 
@@ -37,23 +56,33 @@ class DesktopApp(tk.Tk):
         self.date_listbox = tk.Listbox(self)
         self.date_listbox.pack(fill="both", expand=True, padx=10, pady=5)
 
+        age_frame = tk.Frame(self)
+        age_frame.pack(fill="x", padx=10, pady=5)
+        tk.Label(age_frame, text="Reference Age Range:").pack(side="left")
+        self.age_var = tk.StringVar(value="College (18-22)")
+        tk.OptionMenu(age_frame, self.age_var, *self.age_ranges.keys()).pack(
+            side="left", padx=5
+        )
+
         tk.Button(self, text="Generate PDF", command=self.generate_pdf).pack(pady=10)
 
         self.status_label = tk.Label(self, text="")
         self.status_label.pack(pady=5)
 
     # ------------------------------------------------------------------
-    def search_athletes(self):
-        query = self.search_entry.get().strip().lower()
+    def _update_athlete_list(self):
+        """Refresh the athlete list based on the current search query."""
+        query = self.search_var.get().strip().lower()
         self.athlete_listbox.delete(0, tk.END)
         self.date_listbox.delete(0, tk.END)
-        if not query:
-            return
-        profiles = self.client.get_profiles()
-        matches = profiles[profiles["fullName"].str.contains(query, case=False)]
+        if query:
+            matches = self.profiles[self.profiles["fullName"].str.contains(query, case=False)]
+        else:
+            matches = self.profiles
         self.current_profiles = matches.reset_index(drop=True)
-        for name in matches["fullName"]:
-            self.athlete_listbox.insert(tk.END, name)
+        for name in self.current_profiles["fullName"]:
+            # Display athlete names with capitalized first and last names
+            self.athlete_listbox.insert(tk.END, name.title())
 
     # ------------------------------------------------------------------
     def on_athlete_select(self, _event):
@@ -88,7 +117,10 @@ class DesktopApp(tk.Tk):
         self.status_label.config(text="Generating report... this may take a moment.")
         self.update_idletasks()
         loader = DataLoader()
-        loader.refresh_cache(athlete_name, test_date, 18, 30, client=self.client)
+        min_age, max_age = self.age_ranges[self.age_var.get()]
+        loader.refresh_cache(
+            athlete_name, test_date, min_age, max_age, client=self.client
+        )
         athlete_df, ref_data = loader.load()
         output_path = Path.home() / "Downloads" / f"{athlete_name.replace(' ', '_')}_{test_date:%Y%m%d}.pdf"
         generate_athlete_pdf(athlete_name, test_date, output_path, athlete_df, ref_data)
