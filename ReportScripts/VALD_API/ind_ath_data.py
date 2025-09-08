@@ -147,6 +147,7 @@ def get_athlete_data(
     _ppu_df = select_best_ppu_trial(pd.read_csv(athlete_dir / "PPU.csv"))
 
     full_df = pd.concat([_cmj_df, _hj_df, _imtp_df, _ppu_df], ignore_index=True)
+    full_df.iloc[1,1] = full_df.iloc[1,1] * 2.20462
     full_df.to_csv(athlete_dir / "Full_Data.csv", index=False)
 
     return full_df

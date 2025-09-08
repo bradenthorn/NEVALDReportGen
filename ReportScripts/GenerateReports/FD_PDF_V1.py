@@ -194,13 +194,17 @@ def generate_athlete_pdf(
         "PPU Ecc. Braking RFD", 
         "IMTP Peak Force", 
         "HJ RSI"]
-    # 1.3.1) Using provided athlete and reference data
+    # 1.3.1) Reading all of the athlete data and reference data
     athlete_data = athlete_df
     imtp_ref_data = ref_data["imtp"]
     ppu_ref_data = ref_data["ppu"]
     hj_ref_data = ref_data["hj"]
     cmj_ref_data = ref_data["cmj"] 
-    # 1.3.2.0) Edited to deal with CMJ metrics first (HJ RSI Percentile (Reactive Strength))
+
+    #Establishing body weight
+    athlete_body_weight = round(athlete_data[athlete_data['metric_id'] == 'CMJ_BODY_WEIGHT_LBS_Trial_lb']['Value'].values[0], 2)
+    
+    # 1.3.2.0) CMJ metrics
         #Peak Power
     athlete_cmj_peak = round(athlete_data[athlete_data['metric_id'] == 'CMJ_PEAK_TAKEOFF_POWER_Trial_W']['Value'].values[0], 2)
     cmj_pp_percentile = round(stats.percentileofscore(cmj_ref_data['PEAK_TAKEOFF_POWER_Trial_W'], athlete_cmj_peak), 2)
@@ -237,9 +241,10 @@ def generate_athlete_pdf(
     # 1.3.4) Creating and displaying the spider chart
     draw_spider_chart(c, width, height, spider_data, labels)
 
-    # 1.4) Displaying the spider chart data
+    # 1.4) Displaying individual metric data
     spacing = 17
-    top = height - 110
+    top = height - 100
+
     def draw_underlined_text(c, x, y, text):
         c.setFont("Helvetica-Bold", 12)
         c.drawString(x, y, text)
@@ -247,19 +252,21 @@ def generate_athlete_pdf(
         c.setLineWidth(1)
         c.line(x, y - 2, x + text_width, y - 2)
     
-    draw_underlined_text(c, 25, top - spacing, "Countermovement Jump Performance:")
-    draw_underlined_text(c, 25, top - 6 * spacing, "Plyometric Push Up Performance:")
-    draw_underlined_text(c, 25, top - 9 * spacing, "Isometric Mid Thigh Pull Performance:")
-    draw_underlined_text(c, 25, top - 11 * spacing, "Hop Jump Performance:")
+    draw_underlined_text(c, 25, top - spacing, "Athlete Body Weight:")
+    draw_underlined_text(c, 25, top - 3 * spacing, "Countermovement Jump Performance:")
+    draw_underlined_text(c, 25, top - 8 * spacing, "Plyometric Push Up Performance:")
+    draw_underlined_text(c, 25, top - 11 * spacing, "Isometric Mid Thigh Pull Performance:")
+    draw_underlined_text(c, 25, top - 13 * spacing, "Hop Jump Performance:")
     c.setFont("Helvetica", 10)
-    c.drawString(25, top - 2 * spacing, f"Peak Power: {athlete_cmj_peak} (W) - {cmj_pp_percentile}%")
-    c.drawString(25, top - 3 * spacing, f"Concentric Impulse: {athlete_cmj_con_imp} (Ns) - {cmj_con_imp_percentile}%")
-    c.drawString(25, top - 4 * spacing, f"Eccentric Braking RFD: {athlete_cmj_eb_rfd} (N/s) - {cmj_eb_rfd_percentile}%")
-    c.drawString(25, top - 5 * spacing, f"Body Mass Relative Peak Power: {athlete_cmj_bm_rel_peak} (W/kg) - {cmj_bm_rel_peak_percentile}%")
-    c.drawString(25, top - 7 * spacing, f"Peak Concentric Force: {athlete_ppu_peak} (N) - {ppu_percentile}%")
-    c.drawString(25, top - 8 * spacing, f"Eccentric Braking RFD: {athlete_ppu_eb_rfd} (N/s) - {ppu_eb_rfd_percentile}%")
-    c.drawString(25, top - 10 * spacing, f"Peak Vertical Force: {athlete_imtp_peak} (N) - {imtp_percentile}%")
-    c.drawString(25, top - 12 * spacing, f"HJ Reactive Strength Index: {athlete_hj_rsi} - {hj_percentile}%")
+    c.drawString(25, top - 2 * spacing, f"Body Weight: {athlete_body_weight} (lbs)")
+    c.drawString(25, top - 4 * spacing, f"Peak Power: {athlete_cmj_peak} (W) - {cmj_pp_percentile}%")
+    c.drawString(25, top - 5 * spacing, f"Concentric Impulse: {athlete_cmj_con_imp} (Ns) - {cmj_con_imp_percentile}%")
+    c.drawString(25, top - 6 * spacing, f"Eccentric Braking RFD: {athlete_cmj_eb_rfd} (N/s) - {cmj_eb_rfd_percentile}%")
+    c.drawString(25, top - 7 * spacing, f"Body Mass Relative Peak Power: {athlete_cmj_bm_rel_peak} (W/kg) - {cmj_bm_rel_peak_percentile}%")
+    c.drawString(25, top - 9 * spacing, f"Peak Concentric Force: {athlete_ppu_peak} (N) - {ppu_percentile}%")
+    c.drawString(25, top - 10 * spacing, f"Eccentric Braking RFD: {athlete_ppu_eb_rfd} (N/s) - {ppu_eb_rfd_percentile}%")
+    c.drawString(25, top - 12 * spacing, f"Peak Vertical Force: {athlete_imtp_peak} (N) - {imtp_percentile}%")
+    c.drawString(25, top - 14 * spacing, f"HJ Reactive Strength Index: {athlete_hj_rsi} - {hj_percentile}%")
 
     # 1.6) Displaying the athlete's composite score
     # TODO: FIGURE OUT PROPER COMPOSITE SCORE METHOD (THIS IS NOT IT)
@@ -303,13 +310,14 @@ from data_loader import DataLoader
 
 temp_date = datetime(2025, 8, 27).date()
 loader = DataLoader()
-
+'''
 loader.refresh_cache(
     "Charles Gargus",
-    temp_date,
-    21,
-    30,
+   temp_date,
+   21,
+   30,
 )
+'''
 athlete_df, ref_data = loader.load()
 generate_athlete_pdf(
     "Charles Gargus",
