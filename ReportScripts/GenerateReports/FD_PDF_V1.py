@@ -144,9 +144,9 @@ def draw_textbox(c, x, y, width, height, text,
 def calculate_zscore_composite(athlete_data, weights):
     """Calculate a composite percentile score using weighted z-scores.
 
-    Only metrics with defined weights contribute to the score. The variance of the
-    weighted sum is accounted for so the resulting percentile better reflects the
-    intended metric weights."""
+    Each metric in ``weights`` contributes a z-score that is multiplied by its
+    respective weight. The weighted z-scores are summed and converted to a
+    0–100 percentile scale."""
 
     valid_metrics = set(weights.keys())
     athlete_data = athlete_data[athlete_data["metric_id"].isin(valid_metrics)]
@@ -162,7 +162,6 @@ def calculate_zscore_composite(athlete_data, weights):
 
     total_weight = sum(w for (_, _, w) in used_weights.values())
     composite_z = 0.0
-    weight_sq_sum = 0.0
 
     for metric, (ref_df, ref_col, weight) in used_weights.items():
         norm_weight = weight / total_weight if total_weight else 0
@@ -182,13 +181,8 @@ def calculate_zscore_composite(athlete_data, weights):
         z_score = (float(temp_val) - ref_mean) / ref_std
         z_score = max(min(z_score, 3), -3)
         composite_z += z_score * norm_weight
-        weight_sq_sum += norm_weight ** 2
 
-    if weight_sq_sum == 0:
-        return 0
-    sigma = math.sqrt(weight_sq_sum)
-    standardized_z = composite_z / sigma
-    percentile_score = stats.norm.cdf(standardized_z) * 100
+    percentile_score = stats.norm.cdf(composite_z) * 100
     return round(percentile_score, 2)
 
 def draw_composite_score(c, width, percentile_score,
@@ -354,22 +348,21 @@ from pathlib import Path
 from data_loader import DataLoader
 
 
-temp_date = datetime(2025, 9, 4).date()
+temp_date = datetime(2025, 6, 3).date()
 loader = DataLoader()
 
 loader.refresh_cache(
-    "Blake Maestas",
+    "Dylan Tostrup",
    temp_date,
-   14,
-   18,
+   21,
+   30,
 )
-
 
 athlete_df, ref_data = loader.load()
 generate_athlete_pdf(
-    "Blake Maestas",
+    "Dylan Tostrup",
     temp_date,
-    Path(PDF_OUTPUT_DIR) / "BM_Example.pdf",
+    Path(PDF_OUTPUT_DIR) / f"DT_Example_{temp_date.strftime('%Y%m%d')}.pdf",
     athlete_df,
     ref_data,
 )
