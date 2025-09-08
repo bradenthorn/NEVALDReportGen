@@ -140,6 +140,27 @@ def draw_textbox(c, x, y, width, height, text,
         text_obj.textLine(line)
     c.drawText(text_obj)
 
+def calculate_zscore_composite(athlete_data, weights):
+    """Calculate a composite percentile score using weighted z-scores."""
+    total_weight = sum(w for (_, _, w) in weights.values())
+    composite_z = 0
+    for metric, (temp_ref_data, temp_metric, weight) in weights.items():
+        norm_weight = weight / total_weight if total_weight else 0
+        ref_series = pd.to_numeric(temp_ref_data[temp_metric], errors="coerce").dropna()
+        if ref_series.empty:
+            continue
+        ref_mean = ref_series.mean()
+        ref_std = ref_series.std()
+        row = athlete_data.loc[athlete_data["metric_id"] == metric, "Value"]
+        if row.empty or ref_std == 0:
+            continue
+        temp_val = pd.to_numeric(row.iloc[0], errors="coerce")
+        if pd.isna(temp_val):
+            continue
+        z_score = (float(temp_val) - ref_mean) / ref_std
+        composite_z += z_score * norm_weight
+    percentile_score = stats.norm.cdf(composite_z) * 100
+    return round(percentile_score, 2)
 
 def draw_composite_score(c, width, percentile_score,
                          chart_coords=None,
@@ -172,6 +193,7 @@ def generate_athlete_pdf(
     output_path,
     athlete_df,
     ref_data,
+    composite_method="z_score",
 ):
     #0.0 format the date into a string
     test_date_formatted = test_date.strftime("%B %d, %Y")
@@ -268,25 +290,19 @@ def generate_athlete_pdf(
     c.drawString(25, top - 12 * spacing, f"Peak Vertical Force: {athlete_imtp_peak} (N) - {imtp_percentile}%")
     c.drawString(25, top - 14 * spacing, f"HJ Reactive Strength Index: {athlete_hj_rsi} - {hj_percentile}%")
 
-    # 1.6) Displaying the athlete's composite score
-    # TODO: FIGURE OUT PROPER COMPOSITE SCORE METHOD (THIS IS NOT IT)
-    # 1.6.1) Calculating the composite score
+    # 1.6) Displaying the athlete's composite score work in progress
+ 
     weights = {'CMJ_BODY_WEIGHT_LBS_Trial_lb': (cmj_ref_data, 'BODY_WEIGHT_LBS_Trial_lb', 0.1),
-               'CMJ_PEAK_TAKEOFF_POWER_Trial_W': (cmj_ref_data, 'PEAK_TAKEOFF_POWER_Trial_W', 0.1),
-               'CMJ_CONCENTRIC_IMPULSE_Trial_Ns': (cmj_ref_data, 'CONCENTRIC_IMPULSE_Trial_Ns', 0.1),
-               'CMJ_ECCENTRIC_BRAKING_RFD_Trial_N/s': (cmj_ref_data, 'ECCENTRIC_BRAKING_RFD_Trial_N_s', 0.1),
+               'CMJ_PEAK_TAKEOFF_POWER_Trial_W': (cmj_ref_data, 'PEAK_TAKEOFF_POWER_Trial_W', 0.3),
+               'CMJ_CONCENTRIC_IMPULSE_Trial_Ns': (cmj_ref_data, 'CONCENTRIC_IMPULSE_Trial_Ns', 0.15),
+               'CMJ_ECCENTRIC_BRAKING_RFD_Trial_N/s': (cmj_ref_data, 'ECCENTRIC_BRAKING_RFD_Trial_N_s', 0.15),
                'PPU_PEAK_CONCENTRIC_FORCE_Trial_N': (ppu_ref_data, 'PEAK_CONCENTRIC_FORCE_Trial_N', 0.1),
-               'IMTP_PEAK_VERTICAL_FORCE_Trial_N': (imtp_ref_data, 'PEAK_VERTICAL_FORCE_Trial_N', 0.15),
-               'HJ_AVJ_RSI_Trial_': (hj_ref_data, 'hop_rsi_avg_best_5', 0.05)}
-    percentile_score = 0
-    for metric, (temp_ref_data, temp_metric, weight) in weights.items():
-        ref_series = pd.to_numeric(temp_ref_data[temp_metric], errors='coerce').dropna()
-        row = athlete_data.loc[athlete_data['metric_id'] == metric, 'Value']
-        temp_val = pd.to_numeric(row.iloc[0], errors='coerce')
-        temp_score = stats.percentileofscore(ref_series.values, float(temp_val))
-        percentile_score += temp_score * weight
-    # 1.6.2) Displaying the composite score chart
-    percentile_score = round(percentile_score, 2)
+               'IMTP_PEAK_VERTICAL_FORCE_Trial_N': (imtp_ref_data, 'PEAK_VERTICAL_FORCE_Trial_N', 0.1),
+               'HJ_AVJ_RSI_Trial_': (hj_ref_data, 'hop_rsi_avg_best_5', 0.1)}
+    if composite_method == "z_score":
+        percentile_score = calculate_zscore_composite(athlete_data, weights)
+    else:
+        raise ValueError(f"Unsupported composite method: {composite_method}")
     draw_composite_score(c, width, percentile_score)
 
     # 1.7) Coaches Notes
@@ -308,21 +324,22 @@ from config import PDF_OUTPUT_DIR
 from pathlib import Path
 from data_loader import DataLoader
 
-temp_date = datetime(2025, 8, 27).date()
+temp_date = datetime(2025, 9, 2).date()
 loader = DataLoader()
-'''
+
 loader.refresh_cache(
-    "Charles Gargus",
+    "Cole Cates",
    temp_date,
-   21,
-   30,
+   16,
+   18,
 )
-'''
+
+
 athlete_df, ref_data = loader.load()
 generate_athlete_pdf(
-    "Charles Gargus",
+    "Cole Cates",
     temp_date,
-    Path(PDF_OUTPUT_DIR) / "CG_Example.pdf",
+    Path(PDF_OUTPUT_DIR) / "CC_Example.pdf",
     athlete_df,
     ref_data,
 )
