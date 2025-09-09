@@ -7,10 +7,13 @@ goal is to provide a simple script that can be packaged and emailed to other
 coaches.
 """
 
+import threading
 import tkinter as tk
 from tkinter import messagebox
 from datetime import datetime
 from pathlib import Path
+import matplotlib
+matplotlib.use('Agg')
 
 from ReportScripts.VALD_API.vald_client import ValdClient
 from ReportScripts.GenerateReports.data_loader import DataLoader
@@ -64,7 +67,9 @@ class DesktopApp(tk.Tk):
             side="left", padx=5
         )
 
-        tk.Button(self, text="Generate PDF", command=self.generate_pdf).pack(pady=10)
+        self.generate_button = tk.Button(self, text="Generate PDF", command=self.generate_pdf)
+        self.generate_button.pack(pady=10)
+    
 
         self.status_label = tk.Label(self, text="")
         self.status_label.pack(pady=5)
@@ -115,17 +120,38 @@ class DesktopApp(tk.Tk):
         athlete_name = self.athlete_listbox.get(sel_ath)
         test_date = self.current_dates[sel_date[0]]
         self.status_label.config(text="Generating report... this may take a moment.")
-        self.update_idletasks()
-        loader = DataLoader()
-        min_age, max_age = self.age_ranges[self.age_var.get()]
-        loader.refresh_cache(
-            athlete_name, test_date, min_age, max_age, client=self.client
-        )
-        athlete_df, ref_data = loader.load()
-        output_path = Path.home() / "Downloads" / f"{athlete_name.replace(' ', '_')}_{test_date:%Y%m%d}.pdf"
-        generate_athlete_pdf(athlete_name, test_date, output_path, athlete_df, ref_data)
-        self.status_label.config(text=f"Report saved to {output_path}")
-        messagebox.showinfo("Success", f"Report saved to {output_path}")
+        self.generate_button.config(state=tk.DISABLED)
+
+        def worker():
+            try:
+                loader = DataLoader()
+                min_age, max_age = self.age_ranges[self.age_var.get()]
+                athlete_df, ref_data = loader.load(
+                    athlete_name, test_date, min_age, max_age, client=self.client
+                )
+                output_path = (
+                    Path.home()
+                    / "Downloads"
+                    / f"{athlete_name.replace(' ', '_')}_{test_date:%Y%m%d}.pdf"
+                )
+                generate_athlete_pdf(
+                    athlete_name, test_date, output_path, athlete_df, ref_data
+                )
+            except Exception as exc:  # pragma: no cover - UI thread
+                self.after(0, lambda: self._on_pdf_done(error=exc))
+            else:
+                self.after(0, lambda: self._on_pdf_done(path=output_path))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_pdf_done(self, path=None, error=None):
+        if error:
+            self.status_label.config(text=f"Error generating report: {error}")
+            messagebox.showerror("Error", f"Failed to generate report: {error}")
+        else:
+            self.status_label.config(text=f"Report saved to {path}")
+            messagebox.showinfo("Success", f"Report saved to {path}")
+        self.generate_button.config(state=tk.NORMAL)
 
 
 if __name__ == "__main__":

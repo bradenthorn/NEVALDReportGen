@@ -27,6 +27,8 @@ from matplotlib.projections.polar import PolarAxes # Matplotlib for plotting
 from matplotlib.projections import register_projection # Matplotlib for plotting
 from matplotlib.spines import Spine # Matplotlib for plotting
 from matplotlib.transforms import Affine2D # Matplotlib for plotting
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt # Matplotlib for plotting
 import textwrap # For wrapping text
 import math # For mathematical operations
@@ -216,7 +218,7 @@ def generate_athlete_pdf(
     output_path,
     athlete_df,
     ref_data,
-    composite_method="z_score",
+    composite_method="z_score"
 ):
     #0.0 format the date into a string
     test_date_formatted = test_date.strftime("%B %d, %Y")
@@ -343,6 +345,7 @@ def generate_athlete_pdf(
 # -- CALLING/TESTING PDF GENERATION -----------------------------------------------
 # Calling an example with good data (Ace Kelly) (uncomment to run)
 # temp_date = datetime(2025, 7, 1).date()
+'''
 from config import PDF_OUTPUT_DIR
 from pathlib import Path
 from data_loader import DataLoader
@@ -366,3 +369,4 @@ generate_athlete_pdf(
     athlete_df,
     ref_data,
 )
+'''

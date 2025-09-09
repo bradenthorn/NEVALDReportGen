@@ -18,13 +18,12 @@ from datetime import datetime
 import pandas as pd
 import sys
 import pathlib
-from pathlib import Path
 from typing import Optional
 # Add the project root to Python path
 project_root = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
 # -- IMPORTS FROM OTHER SCRIPTS ---------------------------------------------------
-from config import OUTPUT_DIR
+
 from ReportScripts.VALD_API.vald_client import ValdClient
 from ReportScripts.VALD_API.VALDapiHelpers import cmj_z_score
 
@@ -106,7 +105,7 @@ def get_athlete_data(
     test_date: datetime,
     client: Optional[ValdClient] = None,
 ):
-    """Pull and save athlete data for the specified test date."""
+    """Pull athlete data for the specified test date and return it as a DataFrame."""
     athlete_name = athlete_name.lower().strip()
     if client is None:
         client = ValdClient()
@@ -136,18 +135,18 @@ def get_athlete_data(
 
     # Step 4: Fetch test session data (gives all 4 tests and all trials)
     test_IDandType_list = list(zip(test_sessions["testType"], test_sessions["testId"]))
+    results = {}
     for testType, testID in test_IDandType_list:
-        client.get_fd_results(testID, testType)
+        df = client.get_fd_results(testID, testType)
+        if df is not None:
+            results[testType] = df
 
     # Step 5: Select best trials and merge data
-    athlete_dir = Path(OUTPUT_DIR) / "Athlete"
-    _cmj_df = select_best_cmj_trial(pd.read_csv(athlete_dir / "CMJ.csv"))
-    _hj_df = select_best_hj_trial(pd.read_csv(athlete_dir / "HJ.csv"))
-    _imtp_df = select_best_imtp_trial(pd.read_csv(athlete_dir / "IMTP.csv"))
-    _ppu_df = select_best_ppu_trial(pd.read_csv(athlete_dir / "PPU.csv"))
+    _cmj_df = select_best_cmj_trial(results["CMJ"])
+    _hj_df = select_best_hj_trial(results["HJ"])
+    _imtp_df = select_best_imtp_trial(results["IMTP"])
+    _ppu_df = select_best_ppu_trial(results["PPU"])
 
     full_df = pd.concat([_cmj_df, _hj_df, _imtp_df, _ppu_df], ignore_index=True)
-    full_df.iloc[1,1] = full_df.iloc[1,1] * 2.20462
-    full_df.to_csv(athlete_dir / "Full_Data.csv", index=False)
-
+    full_df.iloc[1, 1] = full_df.iloc[1, 1] * 2.20462
     return full_df

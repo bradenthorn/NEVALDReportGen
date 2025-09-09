@@ -13,6 +13,8 @@ from matplotlib.projections import register_projection # Matplotlib for plotting
 from matplotlib.spines import Spine # Matplotlib for plotting
 from matplotlib.transforms import Affine2D # Matplotlib for plotting
 from matplotlib.path import Path # Matplotlib for plotting
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt # Matplotlib for plotting
 import textwrap # For wrapping text
 
