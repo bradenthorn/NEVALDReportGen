@@ -1,16 +1,12 @@
 # =================================================================================
-# This script is used to pull the desired athletes data from VALD Hub using API
-# Doesn't return anything just updates the Output CSVs (Full_Data.csv)
-# Output CSVs are then used to creat the athletes PDF report
-# Pulling athlete data from VALD Hub is a four step process:
-# 1.) Authentication - Obtain VALD access token (using enviorment credentials)
-# 2.) Fetch All Profiles - get profiles to map names to IDs
-# 3.) Fetch Athlete Test Sessions - gives all athletes tests from a given date range
-# 4.) Fetch Test Session Data - gives all data from a given test session
-# 5.) Select Best Trials and Save CSVs - ends with a data frame of athletes best data
-# NOTE: This script could be cleaner, but it definetely should work for now
-#          Lots of prints right now that can eventually be removed
-#          Also should probably check how we select the best results
+# Pull athlete data from VALD Hub and return a DataFrame of best trials.
+#
+# The process is:
+# 1.) Authentication - Obtain VALD access token (using environment credentials)
+# 2.) Fetch all profiles - map names to IDs
+# 3.) Fetch athlete test sessions - find sessions containing all four tests
+# 4.) Fetch test session data - retrieve all trial data for the session
+# 5.) Select best trials and assemble a DataFrame for report generation
 # =================================================================================
 
 # -- IMPORTS ----------------------------------------------------------------------

@@ -15,15 +15,14 @@ from datetime import datetime
 from dotenv import load_dotenv
 import pathlib
 import sys
-from pathlib import Path
 # Add the project root to Python path
 project_root = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
 # -- IMPORTS FROM OTHER SCRIPTS ---------------------------------------------------
-from config import OUTPUT_DIR
-from ReportScripts.VALD_API.metric_vars import (METRICS_OF_INTEREST, unit_map)
-from ReportScripts.VALD_API.token_gen import get_vald_token
-
+from ReportScripts.VALD_API.metric_vars import (
+    METRICS_OF_INTEREST,
+    unit_map,
+)
 # -- ENVIORMENT VARIABLES ---------------------------------------------------------
 load_dotenv()
 FORCEDECKS_URL = os.getenv("FORCEDECKS_URL")
