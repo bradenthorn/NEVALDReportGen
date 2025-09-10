@@ -8,12 +8,10 @@ import os
 import requests
 import json
 from datetime import datetime, timedelta
-from dotenv import load_dotenv
-from pathlib import Path
+
 
 # -- ENVIORMENT VARIABLES ---------------------------------------------------------
-import sys
-sys.path.append(str(Path(__file__).parent.parent.parent))
+
 from config import VALD_CLIENT_ID, VALD_CLIENT_SECRET, VALD_AUTH_URL, TOKEN_CACHE_FILE
 
 CLIENT_ID     = VALD_CLIENT_ID

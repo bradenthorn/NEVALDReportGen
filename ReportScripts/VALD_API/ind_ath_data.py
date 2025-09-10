@@ -12,12 +12,8 @@
 # -- IMPORTS ----------------------------------------------------------------------
 from datetime import datetime
 import pandas as pd
-import sys
-import pathlib
+
 from typing import Optional
-# Add the project root to Python path
-project_root = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(str(project_root))
 # -- IMPORTS FROM OTHER SCRIPTS ---------------------------------------------------
 
 from ReportScripts.VALD_API.vald_client import ValdClient

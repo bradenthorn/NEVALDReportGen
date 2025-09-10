@@ -1,0 +1,1 @@
+"""Core package for VALD report generation scripts."""

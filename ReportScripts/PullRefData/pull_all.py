@@ -4,16 +4,11 @@
 # =================================================================================
 
 # -- IMPORTS ----------------------------------------------------------------------
-import pathlib
-import sys
 from typing import Dict
 
 import pandas as pd
 
 # Add project root to path
-project_root = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(str(project_root))
-
 from config import (
     CMJ_TABLE,
     HJ_TABLE,

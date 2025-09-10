@@ -1,8 +1,4 @@
-import sys
 from pathlib import Path, PurePosixPath, PureWindowsPath
-
-# Ensure project root is on path
-sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from config import OUTPUT_DIR, PDF_OUTPUT_DIR
 from ReportScripts.GenerateReports.data_loader import DataLoader

@@ -8,43 +8,39 @@
 # =================================================================================
 
 # -- IMPORTS ----------------------------------------------------------------------
-import pandas as pd # For data manipulation
-import numpy as np # Numpy for numerical operations
-import io # For image conversion
-import sys # For system operations
-import pathlib # For file operations
-from pathlib import Path # For file operations
-from scipy import stats # For statistical operations
-from datetime import datetime # For date operations
-from reportlab.lib.pagesizes import letter, landscape, portrait # Reportlab for PDF generation
-from reportlab.platypus import Table, TableStyle # Reportlab for tables
-from reportlab.lib import colors # Reportlab for colors
-from reportlab.lib.utils import ImageReader # Reportlab for image conversion
-from reportlab.lib.colors import white # Reportlab for black color
-from reportlab.pdfgen import canvas # Reportlab for PDF generation
-from matplotlib.patches import Circle, RegularPolygon, Wedge # Matplotlib for plotting
-from matplotlib.projections.polar import PolarAxes # Matplotlib for plotting
-from matplotlib.projections import register_projection # Matplotlib for plotting
-from matplotlib.spines import Spine # Matplotlib for plotting
-from matplotlib.transforms import Affine2D # Matplotlib for plotting
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt # Matplotlib for plotting
-import textwrap # For wrapping text
-import math # For mathematical operations
-# Add the project root to Python path
-project_root = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(str(project_root))
-# -- IMPORTS FROM OTHER SCRIPTS ---------------------------------------------------
-# Add current directory to path for local imports
-current_dir = pathlib.Path(__file__).parent
-sys.path.insert(0, str(current_dir))
+import io  # For image conversion
+import math  # For mathematical operations
+from datetime import datetime  # For date operations
+from pathlib import Path  # For file operations
 
-from charts import radar_factory, composite_score_chart
-from ReportScripts.VALD_API.vald_client import ValdClient
-from ReportScripts.VALD_API.ind_ath_data import get_athlete_data
+import matplotlib
+import matplotlib.pyplot as plt  # Matplotlib for plotting
+import numpy as np  # Numpy for numerical operations
+import pandas as pd  # For data manipulation
+from matplotlib.patches import Circle, RegularPolygon, Wedge  # Matplotlib for plotting
+from matplotlib.projections import register_projection  # Matplotlib for plotting
+from matplotlib.projections.polar import PolarAxes  # Matplotlib for plotting
+from matplotlib.spines import Spine  # Matplotlib for plotting
+from matplotlib.transforms import Affine2D  # Matplotlib for plotting
+from reportlab.lib import colors  # Reportlab for colors
+from reportlab.lib.colors import white  # Reportlab for black color
+from reportlab.lib.pagesizes import letter, landscape, portrait  # Reportlab for PDF generation
+from reportlab.lib.utils import ImageReader  # Reportlab for image conversion
+from reportlab.pdfgen import canvas  # Reportlab for PDF generation
+from reportlab.platypus import Table, TableStyle  # Reportlab for tables
+from scipy import stats  # For statistical operations
+import textwrap  # For wrapping text
+
+matplotlib.use("Agg")
+
+from config import MEDIA_DIR
+from ReportScripts.GenerateReports.charts import (
+    composite_score_chart,
+    radar_factory,
+)
 from ReportScripts.PullRefData.pull_all import pull_all_ref
-from config import MEDIA_DIR, PDF_OUTPUT_DIR
+from ReportScripts.VALD_API.ind_ath_data import get_athlete_data
+from ReportScripts.VALD_API.vald_client import ValdClient
 
 # -- CONSTANTS --------------------------------------------------------------------
 # Centralized styling constants for easy layout tweaks

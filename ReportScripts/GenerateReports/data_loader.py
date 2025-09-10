@@ -9,14 +9,10 @@ from __future__ import annotations
 
 import pathlib
 from pathlib import Path
-import sys
 from typing import Dict, Tuple
 
 import pandas as pd
 
-# Allow imports from the project root
-project_root = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(str(project_root))
 
 from config import OUTPUT_DIR
 from ReportScripts.VALD_API.vald_client import ValdClient

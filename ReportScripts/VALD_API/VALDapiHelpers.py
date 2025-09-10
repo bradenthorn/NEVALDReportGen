@@ -9,16 +9,13 @@
 
 # -- IMPORTS ----------------------------------------------------------------------
 import os
-import requests
-import pandas as pd
 from datetime import datetime
+from pathlib import Path
+import pandas as pd
+import requests
 from dotenv import load_dotenv
-import pathlib
-import sys
-# Add the project root to Python path
-project_root = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(str(project_root))
-# -- IMPORTS FROM OTHER SCRIPTS ---------------------------------------------------
+
+from config import OUTPUT_DIR
 from ReportScripts.VALD_API.metric_vars import (
     METRICS_OF_INTEREST,
     unit_map,

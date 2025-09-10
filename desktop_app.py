@@ -11,6 +11,7 @@ import threading
 import tkinter as tk
 from tkinter import messagebox
 from datetime import datetime
+from pathlib import Path
 
 import matplotlib
 matplotlib.use('Agg')
@@ -138,7 +139,9 @@ class DesktopApp(tk.Tk):
                     athlete_name, test_date, output_path, athlete_df, ref_data
                 )
             except Exception as exc:  # pragma: no cover - UI thread
-                self.after(0, lambda: self._on_pdf_done(error=exc))
+                def handle_error():
+                    self._on_pdf_done(error=exc)
+                self.after(0, handle_error)
             else:
                 self.after(0, lambda: self._on_pdf_done(path=output_path))
 

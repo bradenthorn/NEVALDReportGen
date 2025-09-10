@@ -1,11 +1,4 @@
-import sys
-from pathlib import Path
-
 import pandas as pd
-
-# Ensure project root (parent of 'ReportScripts') is on sys.path
-project_root = Path(__file__).resolve().parents[2]
-sys.path.append(str(project_root))
 
 from ReportScripts.VALD_API.ind_ath_data import (
     select_best_cmj_trial,
